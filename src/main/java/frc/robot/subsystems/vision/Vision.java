@@ -84,7 +84,7 @@ public class Vision extends SubsystemBase {
         }
 
         // Cria a matriz: [X, Y, Rotação]
-        Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev);
+        Matrix<N3, N1> stdDevs = VecBuilder.fill(.5,.5,9);
 
         return java.util.Optional.of(new VisionMeasurement(
             inputs.robotPose.toPose2d(),

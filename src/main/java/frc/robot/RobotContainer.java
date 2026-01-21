@@ -7,6 +7,7 @@ import com.pathplanner.lib.auto.AutoBuilder;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -17,6 +18,7 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.POVButton;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.commands.DriveCommands;
+import frc.robot.commands.Autos.AutoClimbing;
 import frc.robot.generated.TunerConstants;
 // SUBSYSTEMS DRIVE
 import frc.robot.subsystems.drive.Drive;
@@ -135,10 +137,9 @@ public class RobotContainer {
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
-            () -> joystick.getY(), // Verifique se precisa do negativo (-) no seu joystick
-            () -> joystick.getX(),
+            () -> -joystick.getY(),
+            () -> -joystick.getX(),
             () -> joystick.getZ())
-            // O .alongWith faz os dois rodarem em paralelo
             .alongWith(Commands.run(() -> updateVisionCorrection())));
     // CONTROLE MANUAL DO SHOOTER
     /*
@@ -169,23 +170,24 @@ public class RobotContainer {
     buttonX.onTrue(Commands.runOnce(
         () -> drive.zeroHeading(),
         drive).ignoringDisable(true));
-    new JoystickButton(joystick, 3) // Botão B
-        .whileTrue(AutoBuilder.pathfindToPose(FieldPoses.kteste,
-                                                AutoConstants.constraintsAuto,
-                                                0.0));
-            //drive.pathfindToPose(
-            //    () -> {
-            //      return FieldPoses.kteste;
-            //    }));
+
+    // Botão B (Joystick 3)
+    new JoystickButton(joystick, 3)
+        .onTrue(drive.pathfindToPose(
+            () -> FieldPoses.kteste));
+
+    new JoystickButton(joystick, 2)
+        .whileTrue(
+            new AutoClimbing(
+                drive,
+                new Pose2d(5.227, 5.374, new Rotation2d(Math.toRadians(240)))
+            ));
   }
 
   public Command getAutonomousCommand() {
     return autoChooser.get();
   }
 
-  // No RobotContainer.java
-
-  // REMOVA O @Override AQUI
   public void updateVisionCorrection() {
     // 1. Pega a medição do subsistema Vision
     var visionEst = vision.getVisionMeasurement();

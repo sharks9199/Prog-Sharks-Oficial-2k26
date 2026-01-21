@@ -6,8 +6,10 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotBase;
 
 /**
- * This class defines the runtime mode used by AdvantageKit. The mode is always "real" when running
- * on a roboRIO. Change the value of "simMode" to switch between "sim" (physics sim) and "replay"
+ * This class defines the runtime mode used by AdvantageKit. The mode is always
+ * "real" when running
+ * on a roboRIO. Change the value of "simMode" to switch between "sim" (physics
+ * sim) and "replay"
  * (log replay from a file).
  */
 public final class Constants {
@@ -25,11 +27,11 @@ public final class Constants {
     REPLAY
   }
 
-    public static final class AutoConstants {
-        public static PathConstraints constraints = new PathConstraints(1.0, 1.0, 
-        Units.degreesToRadians(180), Units.degreesToRadians(180));
+  public static final class AutoConstants {
+        public static PathConstraints constraints = new PathConstraints(4.0, 3.5, 
+        Units.degreesToRadians(360), Units.degreesToRadians(540));
         
-        public static PathConstraints constraintsAuto = new PathConstraints(0.5, 1.0, 
-        Units.degreesToRadians(180), Units.degreesToRadians(180));
+        public static PathConstraints constraintsAuto = new PathConstraints(2.0, 3.5, 
+        Units.degreesToRadians(360), Units.degreesToRadians(540));
 }
 }

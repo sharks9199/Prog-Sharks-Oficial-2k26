@@ -42,6 +42,7 @@ public class ModuleIOComp implements ModuleIO {
   private final SwerveModuleConstants<
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
       constants;
+      
 
   // Hardware objects
   private final TalonFX driveTalon;

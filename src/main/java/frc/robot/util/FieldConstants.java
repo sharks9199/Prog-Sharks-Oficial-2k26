@@ -45,6 +45,6 @@ public class FieldConstants {
         //public static final Pose2d kCoralLeft = alliance.get() == Alliance.Blue ? kCoralBlueLeft : kCoralRedLeft;
         
             //TESTEEEEEEEEEE
-            public static final Pose2d kteste = new Pose2d(5.227, 5.374, new Rotation2d(Math.toRadians(60)));
+            public static final Pose2d kteste = new Pose2d(5.227, 5.374, new Rotation2d(Math.toRadians(240)));
     }
 }
