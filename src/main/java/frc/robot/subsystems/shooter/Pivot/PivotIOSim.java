@@ -11,24 +11,23 @@ import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 
 public class PivotIOSim implements PivotIO {
     
-  // --- FÍSICA DO HOOD (Peça leve e curta) ---
   private final SingleJointedArmSim sim = new SingleJointedArmSim(
       DCMotor.getKrakenX60(1),  
       50.0,                     // Redução (Geralmente hoods tem redução alta)
       0.01,                     // Inércia (J) - MUITO MENOR que um braço
       0.15,                     // Comprimento (0.15m = 15cm) - Curto
-      Math.toRadians(0),        // Ângulo Mínimo
-      Math.toRadians(60),       // Ângulo Máximo (Hood mexe pouco)
-      true,                     // Gravidade conta
-      Math.toRadians(0)         // Começa embaixo
+      Math.toRadians(0),
+      Math.toRadians(60),
+      true,
+      Math.toRadians(0)
   );
 
   // --- CONTROLE ---
   private final ProfiledPIDController controller = new ProfiledPIDController(
-      20.0, 0.0, 0.0, // P precisa ser alto pois o erro em radianos é pequeno
+      20.0, 0.0, 0.0,
       new TrapezoidProfile.Constraints(
-          Math.PI * 4,    // Max Vel (Rápido, pois é leve)
-          Math.PI * 8     // Max Acel
+          Math.PI * 4,
+          Math.PI * 8
       )
   );
   

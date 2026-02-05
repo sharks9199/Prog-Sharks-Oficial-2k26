@@ -7,34 +7,30 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.units.measure.*;
-import edu.wpi.first.math.util.Units; // Importante para conversões se necessário
+import frc.robot.subsystems.shooter.ShooterConstants.FlyWheelConstants;
+import edu.wpi.first.math.util.Units;
 
 public class FlyWheelIOComp implements FlyWheelIO {
 
-  // --- HARDWARE ---
   private final TalonFX FWMotor;
 
-  // --- REQUESTS ---
   private final VoltageOut voltageRequest = new VoltageOut(0);
   private final VelocityVoltage velocityRequest = new VelocityVoltage(0);
 
-  public FlyWheelIOComp(int motorId) {
-    FWMotor = new TalonFX(motorId);
+  public FlyWheelIOComp() {
+    FWMotor = new TalonFX(FlyWheelConstants.kFWMotor);
 
     var config = new TalonFXConfiguration();
 
-    // 1. Limite de Corrente (40A)
     config.CurrentLimits.SupplyCurrentLimit = 40.0;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
-
-    // 2. Modo Coast (Roda solta)
+    config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
     config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
-
-    // 3. PID (Slot 0)
-    config.Slot0.kP = 0.1;
+    config.Slot0.kP = 0.1; 
     config.Slot0.kI = 0.0;
     config.Slot0.kD = 0.0;
     config.Slot0.kV = 0.12; 
@@ -44,23 +40,10 @@ public class FlyWheelIOComp implements FlyWheelIO {
 
   @Override
   public void updateInputs(FlyWheelIOInputs inputs) {
-    // --- ATUALIZAÇÃO ---
-    // Removemos 'positionRads' pois não definimos na Interface (não é útil para Shooter)
-    
-    // Velocidade: Rotations/Sec -> Radians/Sec
-    // O Kraken retorna 'StatusSignal', usamos getValueAsDouble()
-    inputs.velocityRadsPerSec = Units.rotationsPerMinuteToRadiansPerSecond(FWMotor.getVelocity().getValueAsDouble() * 60); 
-    // ou mais direto:
-    // inputs.velocityRadsPerSec = Units.rotationsToRadians(FWMotor.getVelocity().getValueAsDouble()); // Se for RPS
+    inputs.velocityRadsPerSec = Units.rotationsToRadians(FWMotor.getVelocity().getValueAsDouble());
 
-    // Para garantir a unidade certa (RPS -> Rad/s):
-    inputs.velocityRadsPerSec = edu.wpi.first.math.util.Units.rotationsToRadians(FWMotor.getVelocity().getValueAsDouble());
-
-    // Dados Elétricos
     inputs.appliedVolts = FWMotor.getMotorVoltage().getValueAsDouble();
     inputs.supplyCurrentAmps = FWMotor.getSupplyCurrent().getValueAsDouble();
-    
-    // Removemos 'torqueCurrentAmps' pois também não definimos na Interface
   }
 
   @Override
@@ -70,17 +53,23 @@ public class FlyWheelIOComp implements FlyWheelIO {
 
   @Override
   public void runVelocity(AngularVelocity velocity) {
-    // O Kraken espera Rotações por Segundo (RPS)
     double targetRPS = velocity.in(RotationsPerSecond);
+
     FWMotor.setControl(velocityRequest.withVelocity(targetRPS));
   }
 
   @Override
   public void setPID(double p, double i, double d) {
     var config = new Slot0Configs();
+
+    FWMotor.getConfigurator().refresh(config);
+    
+    // Atualiza só o PID
     config.kP = p;
     config.kI = i;
     config.kD = d;
+    
+    // Aplica de volta
     FWMotor.getConfigurator().apply(config);
   }
 

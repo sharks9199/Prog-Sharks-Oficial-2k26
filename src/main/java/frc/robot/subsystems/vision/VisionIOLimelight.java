@@ -17,22 +17,16 @@ public class VisionIOLimelight implements VisionIO {
 
     @Override
     public void updateInputs(VisionIOInputs inputs) {
-        // 1. Pega os dados brutos da Limelight (tx, ty, ta)
-        // Isso funciona mesmo sem ver a posição do robô no campo
         inputs.tx = LimelightHelpers.getTX(name);
         inputs.ty = LimelightHelpers.getTY(name);
         inputs.ta = LimelightHelpers.getTA(name);
         inputs.fiducialID = (long) LimelightHelpers.getFiducialID(name);
 
-        // 2. Pega a estimativa de posição do MegaTag2
         var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue(name);
 
-        // --- AQUI ESTAVA O ERRO ---
         if (mt2 != null) {
             inputs.hasTarget = mt2.tagCount > 0;
 
-            // CORREÇÃO 1: O nome da variável é 'robotPose', não 'pose'.
-            // CORREÇÃO 2: Convertemos Pose2d para Pose3d para bater com seu VisionIO.
             inputs.robotPose = new Pose3d(mt2.pose);
 
             inputs.timestamp = mt2.timestampSeconds;
@@ -40,7 +34,7 @@ public class VisionIOLimelight implements VisionIO {
             inputs.avgTagDist = mt2.avgTagDist;
         } else {
             inputs.hasTarget = false;
-            inputs.robotPose = new Pose3d(); // Pose vazia
+            inputs.robotPose = new Pose3d();
             inputs.tagCount = 0;
         }
     }

@@ -1,7 +1,6 @@
 package frc.robot.subsystems.shooter.Pivot;
 
 import static edu.wpi.first.units.Units.*;
-
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
@@ -10,9 +9,9 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.*;
+import frc.robot.subsystems.shooter.ShooterConstants.PivotConstants;
 
 public class PivotIOComp implements PivotIO {
 
@@ -20,51 +19,39 @@ public class PivotIOComp implements PivotIO {
   private final MotionMagicVoltage positionRequest = new MotionMagicVoltage(0);
   private final VoltageOut voltageRequest = new VoltageOut(0);
 
-  public PivotIOComp(int motorId) {
-    talon = new TalonFX(motorId);
+  // OFFSET CONFIGURADO NO HARDWARE
+  private final double kStartAngleDegrees = 35.0; 
+
+  public PivotIOComp() {
+    talon = new TalonFX(PivotConstants.kPivotMotor);
 
     var config = new TalonFXConfiguration();
 
-    config.CurrentLimits.SupplyCurrentLimit = 20.0; // Hood gasta pouca corrente
+    config.CurrentLimits.SupplyCurrentLimit = 45.0;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
     
     config.MotorOutput.NeutralMode = NeutralModeValue.Brake; 
-    
-    // VERIFICAR DIREÇÃO: O Hood sobe ou desce com positivo?
-    config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive; 
+    config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive; 
 
-    // REDUÇÃO: Verifique a redução exata do seu Hood
     config.Feedback.SensorToMechanismRatio = 50.0; 
 
     // --- PID ---
-    config.Slot0.kP = 20.0; // P alto para corrigir pequenos erros de ângulo
+    config.Slot0.kP = 95.0; 
     config.Slot0.kI = 0.0;
-    config.Slot0.kD = 0.0;
-    
-    // --- GRAVIDADE ---
-    // Mesmo sendo semicirculo, Arm_Cosine funciona se ele girar no eixo.
-    // Se for fuso (parafuso sem fim), use GravityType.Elevator_Static
+    config.Slot0.kD = 0.0; // Adicione um pouco de D se o braço oscilar (ex: 1.0 ou 2.0)
+
     config.Slot0.kG = 0.2; 
     config.Slot0.GravityType = GravityTypeValue.Arm_Cosine; 
 
     // --- MOTION MAGIC ---
-    config.MotionMagic.MotionMagicCruiseVelocity = 2.0; // Rápido
-    config.MotionMagic.MotionMagicAcceleration = 4.0;
-
-    // --- LIMITES DE SEGURANÇA (IMPORTANTE PARA HOOD) ---
-    // Hoods geralmente quebram se passarem do ponto.
-    // Exemplo: 0 graus (fechado) a 45 graus (aberto maximo)
-    // 45 graus = 0.125 rotações
-    config.SoftwareLimitSwitch.ForwardSoftLimitThreshold = Units.degreesToRotations(45); 
-    config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
-    
-    config.SoftwareLimitSwitch.ReverseSoftLimitThreshold = 0.0;  
-    config.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
+    config.MotionMagic.MotionMagicCruiseVelocity = 1.5; // Rotations/sec
+    config.MotionMagic.MotionMagicAcceleration = 2.0;
 
     talon.getConfigurator().apply(config);
-    
-    // Assume que inicia fechado (zero)
-    talon.setPosition(0.0);
+
+    // MÁGICA AQUI: Dizemos ao motor que ele JÁ COMEÇA em 35 graus
+    // Assim, se ele descer 35 graus, vai para 0 (Horizontal)
+    talon.setPosition(Units.degreesToRotations(kStartAngleDegrees));
   }
 
   @Override
@@ -77,6 +64,7 @@ public class PivotIOComp implements PivotIO {
 
   @Override
   public void runSetpoint(Angle position) {
+    // Como já zeramos o offset na inicialização, mandamos o valor real
     double targetRotations = position.in(Rotations);
     talon.setControl(positionRequest.withPosition(targetRotations));
   }
@@ -93,6 +81,11 @@ public class PivotIOComp implements PivotIO {
     config.kI = i;
     config.kD = d;
     talon.getConfigurator().apply(config); 
+  }
+
+    @Override
+  public void resetEncoder() {
+    talon.setPosition(0);
   }
 
   @Override

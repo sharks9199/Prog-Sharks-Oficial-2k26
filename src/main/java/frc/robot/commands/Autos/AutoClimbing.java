@@ -10,9 +10,6 @@ import com.pathplanner.lib.path.PathConstraints;
 
 import frc.robot.subsystems.drive.Drive;
 
-// Assumindo que você tem constantes de campo, senão defina manualmente
-// import frc.robot.Constants.FieldPoses; 
-
 public class AutoClimbing extends SequentialCommandGroup {
 
     /**
@@ -22,17 +19,17 @@ public class AutoClimbing extends SequentialCommandGroup {
     public AutoClimbing(Drive swerve, Pose2d targetPose) {
         
         Pose2d approachPose = targetPose.transformBy(
-            new Transform2d(new Translation2d(-1.0, 0), new Rotation2d(0))
+            new Transform2d(new Translation2d(-0.5, 0), new Rotation2d(0))
         );
 
 
         PathConstraints fastConstraints = new PathConstraints(
-            4.0, 3.0,
+            10.0, 6.0,
             Math.PI * 4, Math.PI * 8 
         );
 
         PathConstraints dockingConstraints = new PathConstraints(
-            1.0, 1.0,
+            2.0, 1.5,
             Math.PI, Math.PI * 2
         );
 

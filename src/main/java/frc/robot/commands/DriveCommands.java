@@ -74,9 +74,9 @@ public class DriveCommands {
       DoubleSupplier ySupplier,
       DoubleSupplier omegaSupplier) {
 
-    final SlewRateLimiter xLimiter = new SlewRateLimiter(12.0);
-    final SlewRateLimiter yLimiter = new SlewRateLimiter(12.0);
-    final SlewRateLimiter omegaLimiter = new SlewRateLimiter(35.0);
+    final SlewRateLimiter xLimiter = new SlewRateLimiter(18.0);
+    final SlewRateLimiter yLimiter = new SlewRateLimiter(18.0);
+    final SlewRateLimiter omegaLimiter = new SlewRateLimiter(40.0);
 
     return Commands.run(
         () -> {

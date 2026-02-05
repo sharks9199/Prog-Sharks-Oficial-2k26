@@ -28,10 +28,36 @@ public final class Constants {
   }
 
   public static final class AutoConstants {
-        public static PathConstraints constraints = new PathConstraints(4.0, 3.5, 
-        Units.degreesToRadians(360), Units.degreesToRadians(540));
-        
-        public static PathConstraints constraintsAuto = new PathConstraints(2.0, 3.5, 
-        Units.degreesToRadians(360), Units.degreesToRadians(540));
-}
+
+    public static final double kMaxSpeedMps = 4.0;
+    public static final double kMaxAccelMpsSq = 3.5;
+
+    public static final PathConstraints constraints = new PathConstraints(
+        kMaxSpeedMps,
+        kMaxAccelMpsSq,
+        Units.degreesToRadians(360),
+        Units.degreesToRadians(540));
+
+    public static final PathConstraints constraintsAuto = new PathConstraints(
+        kMaxSpeedMps,
+        kMaxAccelMpsSq,
+        Units.degreesToRadians(360),
+        Units.degreesToRadians(540));
+  }
+
+  public static final class OIConstants {
+
+    public static final int kDriverControllerPort = 0;
+    public static final int kSecondDriverControllerPort = 1;
+
+    public static final int kResetFrontIdx = 1;
+    public static final int kThroughtTrenchIdx = 2;
+    public static final int kAutoAimIdx = 3;
+    public static final int kResetTurretEncoderIdx = 4;
+    public static final int kIntakeIdx = 6;
+    public static final int kTurretToLeftPOV = 270;
+    public static final int kTurretToRightPOV = 90;
+    public static final int kLowerIntakeButtonIdx = 180;
+    public static final int kRaiseIntakeButtonIdx = 0;
+  }
 }

@@ -102,7 +102,7 @@ public class ModuleIOSim implements ModuleIO {
     inputs.odometryTurnPositions = new Rotation2d[] {inputs.turnPosition};
 
     if (driveAppliedVolts != 0.0) {
-        System.out.println("MOTOR RECEBENDO VOLTS: " + driveAppliedVolts);
+        // System.out.println("MOTOR RECEBENDO VOLTS: " + driveAppliedVolts);
     }
   }
 

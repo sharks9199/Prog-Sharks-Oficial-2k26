@@ -12,23 +12,31 @@ public interface PivotIO {
     public double velocityRadsPerSec = 0.0;
     public double appliedVolts = 0.0;
     public double supplyCurrentAmps = 0.0;
-    
+
     // Setpoints (útil para ver no gráfico se o robô está seguindo a meta)
     public double setpointPositionRads = 0.0;
     public double setpointVelocityRadsPerSec = 0.0;
   }
 
   /** Atualiza os inputs */
-  default void updateInputs(PivotIOInputs inputs) {}
+  default void updateInputs(PivotIOInputs inputs) {
+  }
 
   /** Manda o motor ir para um ângulo (Usando Units!) */
-  default void runSetpoint(Angle position) {}
+  default void runSetpoint(Angle position) {
+  }
 
   /** Manda voltagem direta */
-  default void runVolts(Voltage volts) {}
+  default void runVolts(Voltage volts) {
+  }
+
+  default void resetEncoder() {
+  }
 
   /** Configura PID (chamado no inicio do codigo) */
-  default void setPID(double p, double i, double d) {}
+  default void setPID(double p, double i, double d) {
+  }
 
-  default void stop() {}
+  default void stop() {
+  }
 }

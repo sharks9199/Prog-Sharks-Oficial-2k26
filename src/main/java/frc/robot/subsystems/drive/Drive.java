@@ -17,6 +17,7 @@ import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.pathfinding.Pathfinding;
 import com.pathplanner.lib.util.PathPlannerLogging;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -41,6 +42,7 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.DeferredCommand;
 import edu.wpi.first.wpilibj2.command.Subsystem;
@@ -54,10 +56,17 @@ import frc.robot.util.LocalADStarAK;
 
 public class Drive extends SubsystemBase {
   private Rotation2d driverGyroOffset = new Rotation2d();
+
+  private PIDConstants translationPID = new PIDConstants(12.0, 0.0, 0.0);
+  private PIDConstants rotationPID = new PIDConstants(32.0, 0.0, 0.0);
+
+  private Pose2d currentTargetPose = new Pose2d();
+
   // TunerConstants doesn't include these constants, so they are declared locally
   static final double ODOMETRY_FREQUENCY = new CANBus(TunerConstants.DrivetrainConstants.CANBusName).isNetworkFD()
       ? 250.0
       : 100.0;
+
   public static final double DRIVE_BASE_RADIUS = Math.max(
       Math.max(
           Math.hypot(TunerConstants.FrontLeft.LocationX, TunerConstants.FrontLeft.LocationY),
@@ -121,6 +130,14 @@ public class Drive extends SubsystemBase {
     // Start odometry thread
     PhoenixOdometryThread.getInstance().start();
 
+    SmartDashboard.putNumber("PidPathFind/Translation_kP", translationPID.kP);
+    SmartDashboard.putNumber("PidPathFind/Translation_kI", translationPID.kI);
+    SmartDashboard.putNumber("PidPathFind/Translation_kD", translationPID.kD);
+
+    SmartDashboard.putNumber("PidPathFind/Rotation_kP", rotationPID.kP);
+    SmartDashboard.putNumber("PidPathFind/Rotation_kI", rotationPID.kI);
+    SmartDashboard.putNumber("PidPathFind/Rotation_kD", rotationPID.kD);
+
     // Configure AutoBuilder for PathPlanner
     AutoBuilder.configure(
         this::getPose,
@@ -131,8 +148,7 @@ public class Drive extends SubsystemBase {
           speeds.omegaRadiansPerSecond = -speeds.omegaRadiansPerSecond;
           runVelocity(speeds);
         },
-        new PPHolonomicDriveController(
-            new PIDConstants(10.0, 0.0, 0.0), new PIDConstants(50.0, 0.0, 0.0)),
+        new PPHolonomicDriveController(translationPID, rotationPID),
         PP_CONFIG,
         () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
         this);
@@ -147,6 +163,12 @@ public class Drive extends SubsystemBase {
           Logger.recordOutput("Odometry/TrajectorySetpoint", targetPose);
         });
 
+    PathPlannerLogging.setLogTargetPoseCallback((targetPose) -> {
+      currentTargetPose = targetPose; // Salva o alvo para usarmos no periodic
+      Logger.recordOutput("Odometry/TrajectorySetpoint", targetPose);
+    });
+
+
     // Configure SysId
     sysId = new SysIdRoutine(
         new SysIdRoutine.Config(
@@ -158,20 +180,27 @@ public class Drive extends SubsystemBase {
             (voltage) -> runCharacterization(voltage.in(Volts)), null, this));
   } // --- FIM DO CONSTRUTOR ---
 
-  /**
-   * Zera a direção do robô (Heading).
-   * Define a frente atual do robô (onde a Limelight aponta) como a "Frente do
-   * Campo".
-   * Isso NÃO altera a posição X/Y, apenas a rotação.
-   */
+
   public void zeroHeading() {
-    // Em vez de mudar o PoseEstimator (que a câmera vai corrigir depois),
-    // nós salvamos a rotação atual como o nosso "novo zero".
     driverGyroOffset = getPose().getRotation();
   }
 
   @Override
   public void periodic() {
+
+    Pose2d currentPose = getPose(); // Sua posição atual
+
+    if (DriverStation.isEnabled()) {
+
+      double errorX = currentTargetPose.getX() - currentPose.getX();
+      double errorY = currentTargetPose.getY() - currentPose.getY();
+      double xyError = Math.hypot(errorX, errorY);
+
+      double thetaError = currentTargetPose.getRotation().minus(currentPose.getRotation()).getDegrees();
+      SmartDashboard.putNumber("PathFollowing/XY_Error", xyError);
+      SmartDashboard.putNumber("PathFollowing/Theta_Error", Math.abs(thetaError));
+    }
+
     odometryLock.lock(); // Prevents odometry updates while reading data
     gyroIO.updateInputs(gyroInputs);
     Logger.processInputs("Drive/Gyro", gyroInputs);
@@ -370,5 +399,12 @@ public class Drive extends SubsystemBase {
     return new DeferredCommand(
         () -> AutoBuilder.pathfindToPose(_pose.get(), AutoConstants.constraintsAuto),
         Set.of(this));
+  }
+
+  public Command pathfindThenFollowPath(Supplier<PathPlannerPath> _path) {
+    return new DeferredCommand(
+        () -> AutoBuilder.pathfindThenFollowPath(_path.get(), AutoConstants.constraintsAuto),
+        Set.of(this)
+    );
   }
 }

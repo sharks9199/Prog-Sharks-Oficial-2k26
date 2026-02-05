@@ -6,6 +6,7 @@ import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.*;
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 
@@ -14,28 +15,26 @@ public class TurretIOSim implements TurretIO {
   // --- FÍSICA ---
   private final SingleJointedArmSim sim = new SingleJointedArmSim(
       DCMotor.getKrakenX60(1), 
-      100.0,                   // Redução ALTA (Turrets precisam de força e precisão)
-      0.5,                     // Inércia (Massa giratória do conjunto todo)
-      0.3,                     // Comprimento (raio do turret)
-      Math.toRadians(-180),    // Limite Mínimo (Ex: -180 graus)
-      Math.toRadians(180),     // Limite Máximo (Ex: +180 graus)
-      false,                   // <--- GRAVIDADE DESLIGADA (Horizontal)
-      Math.toRadians(0)        // Começa no centro
+      50.0,
+      0.01,
+      0.2,
+      Math.toRadians(-90),
+      Math.toRadians(90),
+      false,
+      Math.toRadians(0)
   );
 
-  // --- CONTROLE ---
   private final ProfiledPIDController controller = new ProfiledPIDController(
-      15.0, 0.0, 0.0, // P
+      5.0, 0.0, 0.0,
       new TrapezoidProfile.Constraints(
-          Math.PI * 2,  // Max Vel (1 volta/s)
-          Math.PI * 4   // Max Acel
+          Units.rotationsToRadians(1.5),
+          Units.rotationsToRadians(3.0)
       )
   );
 
-  // Para Turret, usamos SimpleMotorFeedforward (kS, kV, kA) pois não tem kG (gravidade)
   private final SimpleMotorFeedforward ff = new SimpleMotorFeedforward(
-      0.1,  // kS (Atrito estático - precisa de força pra começar a girar)
-      0.15, // kV
+      0.0,  // Simulação perfeita não tem muito atrito estático
+      0.1,  // kV
       0.01  // kA
   );
 
@@ -56,10 +55,8 @@ public class TurretIOSim implements TurretIO {
 
   @Override
   public void runSetpoint(Angle targetPosition) {
-    // PID calcula a correção
     double pidOutput = controller.calculate(sim.getAngleRads(), targetPosition.in(Radians));
     
-    // Feedforward calcula a física (sem gravidade)
     double ffOutput = ff.calculate(controller.getSetpoint().velocity);
 
     runVolts(Volts.of(pidOutput + ffOutput));
