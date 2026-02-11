@@ -3,29 +3,29 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 1.8335783132530121,
-        "y": 7.400734939759036
+        "x": 5.863409415121255,
+        "y": 0.6256633380884444
       },
       "prevControl": null,
       "nextControl": {
-        "x": 2.7782809168340967,
-        "y": 7.4101171362698475
+        "x": 3.508573466476462,
+        "y": 0.6127246790299581
       },
       "isLocked": false,
-      "linkedName": null
+      "linkedName": "Final ABR4"
     },
     {
       "anchor": {
-        "x": 4.412518072289157,
-        "y": 7.400734939759036
+        "x": 2.4217261055634807,
+        "y": 3.8085734664764628
       },
       "prevControl": {
-        "x": 3.951355877548181,
-        "y": 7.413772126230102
+        "x": 2.1241369472182594,
+        "y": 0.004607703281026776
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "FinalLançamento"
+      "linkedName": "FINAL BLUE"
     }
   ],
   "rotationTargets": [],
@@ -33,22 +33,22 @@
   "pointTowardsZones": [],
   "eventMarkers": [],
   "globalConstraints": {
-    "maxVelocity": 2.0,
-    "maxAcceleration": 2.0,
+    "maxVelocity": 3.0,
+    "maxAcceleration": 3.0,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0,
     "nominalVoltage": 12.0,
     "unlimited": false
   },
   "goalEndState": {
-    "velocity": 2.0,
-    "rotation": 0.0
+    "velocity": 0,
+    "rotation": 180.0
   },
   "reversed": false,
-  "folder": "AutoBlueLeft",
+  "folder": "AutoBlueRight",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 0.0
+    "rotation": 180.0
   },
-  "useDefaultConstraints": false
+  "useDefaultConstraints": true
 }

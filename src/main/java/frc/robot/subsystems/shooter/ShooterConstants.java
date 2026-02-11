@@ -3,7 +3,9 @@ package frc.robot.subsystems.shooter;
 public class ShooterConstants {
     
     public static final class FlyWheelConstants {
-        public static final int kFWMotor = 25; 
+        public static final int kShooterFWMotor = 25; 
+        public static final int kCentrifugeMotor = 31;
+        public static final int kFeederFWMotor = 33;
     }
 
     public static final class PivotConstants {

@@ -12,24 +12,18 @@ import frc.robot.subsystems.drive.Drive;
 
 public class AutoClimbing extends SequentialCommandGroup {
 
-    /**
-     * @param swerve 
-     * @param targetPose
-     */
-    public AutoClimbing(Drive swerve, Pose2d targetPose) {
-        
+    public AutoClimbing(Drive drive, Pose2d targetPose) {
         Pose2d approachPose = targetPose.transformBy(
             new Transform2d(new Translation2d(-0.5, 0), new Rotation2d(0))
         );
 
-
         PathConstraints fastConstraints = new PathConstraints(
-            10.0, 6.0,
+            4.0, 3.0,
             Math.PI * 4, Math.PI * 8 
         );
 
         PathConstraints dockingConstraints = new PathConstraints(
-            2.0, 1.5,
+            1.0, 1.0,
             Math.PI, Math.PI * 2
         );
 

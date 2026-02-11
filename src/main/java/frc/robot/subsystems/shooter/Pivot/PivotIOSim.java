@@ -13,9 +13,9 @@ public class PivotIOSim implements PivotIO {
     
   private final SingleJointedArmSim sim = new SingleJointedArmSim(
       DCMotor.getKrakenX60(1),  
-      50.0,                     // Redução (Geralmente hoods tem redução alta)
-      0.01,                     // Inércia (J) - MUITO MENOR que um braço
-      0.15,                     // Comprimento (0.15m = 15cm) - Curto
+      50.0,
+      0.01,
+      0.15,
       Math.toRadians(0),
       Math.toRadians(60),
       true,
@@ -32,10 +32,10 @@ public class PivotIOSim implements PivotIO {
   );
   
   private final ArmFeedforward ff = new ArmFeedforward(
-      0.0,  // kS
-      0.2,  // kG (Gravidade leve)
-      0.12, // kV
-      0.01  // kA
+      0,0,
+      0.2,
+      0.12,
+      0.01 
   );
 
   private double appliedVolts = 0.0;

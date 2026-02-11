@@ -6,42 +6,45 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.system.plant.LinearSystemId; // <--- NOVO IMPORT NECESSÁRIO
+import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.*;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 
 public class FlyWheelIOSim implements FlyWheelIO {
 
-  // --- FÍSICA ---
-  // A melhor forma de instanciar é criando o Sistema Linear (Plant) explicitamente.
-  // Isso resolve qualquer erro de construtor "undefined".
+  // --- Simulação do Motor Principal ---
   private final FlywheelSim sim = new FlywheelSim(
-      // 1. Cria o modelo matemático (Motor, Inércia J, Redução)
-      // Nota: A ordem aqui é (Motor, Inércia, Redução)
       LinearSystemId.createFlywheelSystem(DCMotor.getKrakenX60(1), 0.004, 1.0),
-      
-      // 2. Passa o motor novamente (para cálculos de corrente)
       DCMotor.getKrakenX60(1),
-      
-      // 3. Passa a redução novamente
       1.0
   );
-
-  // --- CONTROLE (PID + FF) ---
   private final PIDController pid = new PIDController(0.1, 0.0, 0.0);
   private final SimpleMotorFeedforward ff = new SimpleMotorFeedforward(0.05, 0.12, 0.01);
 
   private double appliedVolts = 0.0;
   private double currentSetpointRadsPerSec = 0.0; 
 
+  // --- Simulação Simplificada para Feeder e Centrífuga ---
+  // (Apenas para ver se está rodando no Dashboard, sem física complexa)
+  private double centrifugeVolts = 0.0;
+  private double feederVolts = 0.0;
+
   @Override
   public void updateInputs(FlyWheelIOInputs inputs) {
+    // Atualiza Física do Flywheel
     sim.update(0.02);
 
     inputs.velocityRadsPerSec = sim.getAngularVelocityRadPerSec();
     inputs.appliedVolts = appliedVolts;
     inputs.supplyCurrentAmps = sim.getCurrentDrawAmps();
     inputs.setpointVelocityRadsPerSec = currentSetpointRadsPerSec;
+
+    // Atualiza Feeders (Simulação básica: Voltagem * k = Velocidade)
+    inputs.centrifugeAppliedVolts = centrifugeVolts;
+    inputs.centrifugeVelocityRpm = centrifugeVolts * 500; // Valor fictício para visualização
+    
+    inputs.feederAppliedVolts = feederVolts;
+    inputs.feederVelocityRpm = feederVolts * 500; // Valor fictício para visualização
   }
 
   @Override
@@ -60,6 +63,29 @@ public class FlyWheelIOSim implements FlyWheelIO {
     sim.setInputVoltage(appliedVolts);
   }
 
+  // --- Implementação do Feeder e Centrífuga no Sim ---
+  
+  @Override
+  public void runCentrifugeVolts(double volts) {
+      this.centrifugeVolts = MathUtil.clamp(volts, -12, 12);
+  }
+
+  @Override
+  public void runCentrifugeVelocity(AngularVelocity velocity) {
+      // Simplesmente converte velocidade pedida em voltagem proporcional para simular
+      runCentrifugeVolts(velocity.in(RotationsPerSecond) * 0.1); 
+  }
+
+  @Override
+  public void runFeederVolts(double volts) {
+      this.feederVolts = MathUtil.clamp(volts, -12, 12);
+  }
+
+  @Override
+  public void runFeederVelocity(AngularVelocity velocity) {
+      runFeederVolts(velocity.in(RotationsPerSecond) * 0.1);
+  }
+
   @Override
   public void setPID(double p, double i, double d) {
     pid.setPID(p, i, d);
@@ -69,5 +95,7 @@ public class FlyWheelIOSim implements FlyWheelIO {
   public void stop() {
     runVolts(Volts.of(0));
     currentSetpointRadsPerSec = 0.0;
+    centrifugeVolts = 0;
+    feederVolts = 0;
   }
 }

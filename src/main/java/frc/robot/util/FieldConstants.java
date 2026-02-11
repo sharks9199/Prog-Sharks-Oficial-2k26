@@ -75,7 +75,7 @@ public class FieldConstants {
         public static final Translation2d kHubRed = new Translation2d(11.910, 4.030);
 
         // TESTEEEEEEEEEE
-        public static final Pose2d kteste = new Pose2d(5.227, 5.374, new Rotation2d(Math.toRadians(240)));
+        public static final Pose2d kBlueClimb = new Pose2d(1.450, 4.050, new Rotation2d(Math.toRadians(180)));
 
 
         //Filtro de saida e entrada das alianças

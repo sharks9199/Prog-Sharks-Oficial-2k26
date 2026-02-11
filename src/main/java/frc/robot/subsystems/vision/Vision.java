@@ -3,91 +3,111 @@ package frc.robot.subsystems.vision;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import org.littletonrobotics.junction.Logger;
-import edu.wpi.first.math.geometry.Pose3d;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class Vision extends SubsystemBase {
-    private final VisionIO io;
-    private final VisionIOInputsAutoLogged inputs = new VisionIOInputsAutoLogged();
+    // Agora aceitamos múltiplas câmeras (Array)
+    private final VisionIO[] ios;
+    private final VisionIOInputsAutoLogged[] inputs;
 
-    public Vision(VisionIO io) {
-        this.io = io;
+    // Construtor aceita VARARGS (VisionIO... ios)
+    // Isso permite passar: new Vision(cam1) OU new Vision(cam1, cam2, cam3...)
+    public Vision(VisionIO... ios) {
+        this.ios = ios;
+        this.inputs = new VisionIOInputsAutoLogged[ios.length];
+        
+        // Inicializa os inputs para cada câmera
+        for (int i = 0; i < ios.length; i++) {
+            inputs[i] = new VisionIOInputsAutoLogged();
+        }
     }
 
     @Override
     public void periodic() {
-        io.updateInputs(inputs);
-
-        Logger.processInputs("Vision", inputs);
-
-        if (inputs.hasTarget) {
-            Logger.recordOutput("Vision/RobotPose", inputs.robotPose);
-        } else {
-            Logger.recordOutput("Vision/RobotPose", new Pose3d());
-        }
-    }
-
-    public java.util.Optional<VisionMeasurement> getVisionMeasurement() {
-        if (!inputs.hasTarget || inputs.tagCount == 0) {
-            return java.util.Optional.empty();
-        }
-
-        double xyStdDev;
-        double thetaStdDev;
-
-        if (inputs.tagCount >= 2) {
-            // MÚLTIPLAS TAGS: Confiança EXTREMA
-            // A triangulação é muito precisa para X, Y e Rotação.
-            xyStdDev = 0.02; 
-            thetaStdDev = 0.05; 
-        } 
-        else if (inputs.avgTagDist > 4.0) {
-            // TAG ÚNICA E LONGE (> 4 metros)
-            // Aqui a leitura é muito ruidosa, mas se você quer forçar a atualização,
-            // usaremos valores mais altos (menos confiança que de perto).
-            xyStdDev = 1.0; 
-            thetaStdDev = 3.0; // Confia pouco, mas corrige se o erro for grande
-        } 
-        else {
-            // TAG ÚNICA E PERTO (< 4 metros)
-            // É aqui que você queria a mudança.
-            xyStdDev = 0.1;
+        // Loop para atualizar cada câmera individualmente
+        for (int i = 0; i < ios.length; i++) {
+            ios[i].updateInputs(inputs[i]);
             
-            // --- MUDANÇA AQUI ---
-            // Antes estava 999999. Agora colocamos um valor "médio".
-            // Isso permite que a visão corrija o giroscópio devagar.
-            thetaStdDev = 1.5; 
+            // Loga separado: "Vision/Inst0", "Vision/Inst1", etc.
+            Logger.processInputs("Vision/Inst" + i, inputs[i]);
+
+            if (inputs[i].hasTarget) {
+                Logger.recordOutput("Vision/Inst" + i + "/RobotPose", inputs[i].robotPose);
+            } else {
+                Logger.recordOutput("Vision/Inst" + i + "/RobotPose", new Pose3d());
+            }
+        }
+    }
+
+    /**
+     * Retorna uma LISTA de medições.
+     * O DriveSubsystem deve iterar sobre essa lista e adicionar cada uma.
+     */
+    public List<VisionMeasurement> getVisionMeasurements() {
+        List<VisionMeasurement> measurements = new ArrayList<>();
+
+        for (VisionIOInputsAutoLogged input : inputs) {
+            // Se essa câmera não tem alvo ou pose válida, pula
+            if (!input.hasTarget || input.tagCount == 0) {
+                continue;
+            }
+
+            double xyStdDev;
+            double thetaStdDev;
+
+            // Lógica de desvio padrão (Confiança)
+            if (input.tagCount >= 2) {
+                xyStdDev = 0.02;
+                thetaStdDev = 0.05;
+            } else if (input.avgTagDist > 4.0) {
+                xyStdDev = 1.0;
+                thetaStdDev = 3.0;
+            } else {
+                xyStdDev = 0.1;
+                thetaStdDev = 1.5;
+            }
+
+            // CORREÇÃO: Usando as variáveis calculadas acima
+            Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev);
+
+            measurements.add(new VisionMeasurement(
+                input.robotPose.toPose2d(),
+                input.timestamp,
+                stdDevs
+            ));
         }
 
-        // Cria a matriz: [X, Y, Rotação]
-        Matrix<N3, N1> stdDevs = VecBuilder.fill(.5,.5,9);
-
-        return java.util.Optional.of(new VisionMeasurement(
-            inputs.robotPose.toPose2d(),
-            inputs.timestamp,
-            stdDevs
-        ));
+        return measurements;
     }
 
-    public double getTX() {
-        return inputs.tx;
+    public double getBestTX() {
+        for (VisionIOInputsAutoLogged input : inputs) {
+            if (input.hasTarget) return input.tx;
+        }
+        return 0.0;
     }
 
-    public double getTY() {
-        return inputs.ty;
+    public double getBestTY() {
+        for (VisionIOInputsAutoLogged input : inputs) {
+            if (input.hasTarget) return input.ty;
+        }
+        return 0.0;
     }
 
     public boolean hasTarget() {
-        return inputs.hasTarget;
+        for (VisionIOInputsAutoLogged input : inputs) {
+            if (input.hasTarget) return true;
+        }
+        return false;
     }
 
-    public void setPipeline(int pipeline) {
-        io.setPipeline(pipeline);
-    }
-
-    public record VisionMeasurement(Pose2d pose, double timestamp, Matrix<N3, N1> stdDevs) {
-    }
+    public record VisionMeasurement(Pose2d pose, double timestamp, Matrix<N3, N1> stdDevs) {}
 }
