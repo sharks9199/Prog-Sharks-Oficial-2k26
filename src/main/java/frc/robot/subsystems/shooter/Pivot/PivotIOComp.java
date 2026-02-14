@@ -19,7 +19,6 @@ public class PivotIOComp implements PivotIO {
   private final MotionMagicVoltage positionRequest = new MotionMagicVoltage(0);
   private final VoltageOut voltageRequest = new VoltageOut(0);
 
-  // OFFSET CONFIGURADO NO HARDWARE
   private final double kStartAngleDegrees = 35.0; 
 
   public PivotIOComp() {
@@ -38,19 +37,17 @@ public class PivotIOComp implements PivotIO {
     // --- PID ---
     config.Slot0.kP = 95.0; 
     config.Slot0.kI = 0.0;
-    config.Slot0.kD = 0.0; // Adicione um pouco de D se o braço oscilar (ex: 1.0 ou 2.0)
+    config.Slot0.kD = 0.0;
 
     config.Slot0.kG = 0.2; 
     config.Slot0.GravityType = GravityTypeValue.Arm_Cosine; 
 
     // --- MOTION MAGIC ---
-    config.MotionMagic.MotionMagicCruiseVelocity = 1.5; // Rotations/sec
+    config.MotionMagic.MotionMagicCruiseVelocity = 1.5;
     config.MotionMagic.MotionMagicAcceleration = 2.0;
 
     talon.getConfigurator().apply(config);
 
-    // MÁGICA AQUI: Dizemos ao motor que ele JÁ COMEÇA em 35 graus
-    // Assim, se ele descer 35 graus, vai para 0 (Horizontal)
     talon.setPosition(Units.degreesToRotations(kStartAngleDegrees));
   }
 
@@ -64,7 +61,6 @@ public class PivotIOComp implements PivotIO {
 
   @Override
   public void runSetpoint(Angle position) {
-    // Como já zeramos o offset na inicialização, mandamos o valor real
     double targetRotations = position.in(Rotations);
     talon.setControl(positionRequest.withPosition(targetRotations));
   }

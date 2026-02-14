@@ -15,8 +15,11 @@ public class VisionIOLimelight implements VisionIO {
         this.rotationSupplier = rotationSupplier;
     }
 
-    @Override
+@Override
     public void updateInputs(VisionIOInputs inputs) {
+        var robotRotation = rotationSupplier.get();
+        LimelightHelpers.SetRobotOrientation(name, robotRotation.getDegrees(), 0, 0, 0, 0, 0);
+
         inputs.tx = LimelightHelpers.getTX(name);
         inputs.ty = LimelightHelpers.getTY(name);
         inputs.ta = LimelightHelpers.getTA(name);

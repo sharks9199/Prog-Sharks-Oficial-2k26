@@ -21,12 +21,12 @@ public class Intake extends SubsystemBase {
     private boolean isIntakeActive = false;
 
     private final ProfiledPIDController upController = new ProfiledPIDController(
-        0.08, 0.0, 0.0, 
-        new TrapezoidProfile.Constraints(300, 150)
+        1.0, 0.0, 0.0, 
+        new TrapezoidProfile.Constraints(350, 300)
     );
     
     private final ProfiledPIDController downController = new ProfiledPIDController(
-        0.02, 0.0, 0.0, 
+        0.3, 0.0, 0.0, 
         new TrapezoidProfile.Constraints(150, 100)
     );
 
@@ -40,10 +40,13 @@ public Intake(IntakeIO io) {
         io.updateInputs(inputs);
         Logger.processInputs("Intake", inputs);
 
-        SmartDashboard.putNumber("Intake/Position", getPosition());
-        SmartDashboard.putNumber("Intake/Speed", getSpeed());
-        SmartDashboard.putNumber("Intake/Setpoint", getSetpoint());
-        SmartDashboard.putBoolean("Intake/Is Active", isIntakeActive);
+        SmartDashboard.putNumber("IntakePosition", getPosition());
+        SmartDashboard.putNumber("IntakeSpeed", getSpeed());
+        SmartDashboard.putNumber("Intake Setpoint", getSetpoint());
+        SmartDashboard.putBoolean("Intake Is Active", isIntakeActive);
+
+        SmartDashboard.putNumber("IntakeApplied Volts", inputs.rotationAppliedVolts);
+        SmartDashboard.putNumber("IntakeCurrent Amps", inputs.rotationCurrentAmps);
     }
 
     // --- GETTERS ---
@@ -82,25 +85,15 @@ public Intake(IntakeIO io) {
         io.setIntake(0);
     }
 
-    // =========================================================================
-    //  LÓGICA DE COMANDOS
-    // =========================================================================
-
-    /**
-     * COMANDO PADRÃO (Default Command)
-     * Roda sempre. Mantém o braço na posição do Setpoint usando PID.
-     */
     public Command getMaintainPositionCommand() {
         return run(() -> {
             double currentPos = getPosition();
             double target = getSetpoint();
             double output = 0;
 
-            // Se o alvo é maior (mais pra baixo) que o atual -> DESCER
             if (target > currentPos) {
                 output = downController.calculate(currentPos, target);
             } else {
-                // Se o alvo é menor (mais pra cima) -> SUBIR
                 output = upController.calculate(currentPos, target);
             }
 
@@ -124,11 +117,8 @@ public Intake(IntakeIO io) {
     private void deploy() {
         isIntakeActive = true;
         intakeConstants.intakeCollecting = true;
-        
-        // 1. Muda o Setpoint para posição de coleta (ex: 0.083)
         changeSetpoint(intakeConstants.CollectPosition);
-        
-        // 2. Reseta o controlador para evitar "pulo"
+
         downController.reset(getPosition());
 
         setIntake(intakeConstants.RollerSpeedCollect); 

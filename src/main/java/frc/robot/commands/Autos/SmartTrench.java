@@ -7,6 +7,7 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.path.PathPlannerPath;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -23,17 +24,26 @@ public class SmartTrench {
             Pose2d currentPose = drive.getPose();
             double fieldCenterY = 4.05;
 
+            Rotation2d bestRotation;
+            boolean isFacingForward = Math.cos(currentPose.getRotation().getRadians()) > 0;
+            
+            if (isFacingForward) {
+                bestRotation = Rotation2d.fromDegrees(0);
+            } else {
+                bestRotation = Rotation2d.fromDegrees(180);
+            }
+
             boolean useLeftTrenchLogic = calculateIsLeft(currentPose.getY(), fieldCenterY);
 
             PathPlannerPath selectedPath = FieldConstants.FieldPoses.getAutoTrenchPath(currentPose, useLeftTrenchLogic);
 
             if (selectedPath != null) {
-                Pose2d startPose = selectedPath.getStartingHolonomicPose().orElse(currentPose);
+                Pose2d originalStart = selectedPath.getStartingHolonomicPose().orElse(currentPose);
+                Pose2d smartStartPose = new Pose2d(originalStart.getTranslation(), bestRotation);
 
-                double goalVelocity = AutoConstants.kMaxSpeedMps;
-
+                double goalVelocity = 0.5;
                 Command pathfind = AutoBuilder.pathfindToPose(
-                        startPose,
+                        smartStartPose,
                         AutoConstants.constraints,
                         goalVelocity);
 
@@ -53,7 +63,6 @@ public class SmartTrench {
 
         if (allianceOpt.isPresent() && allianceOpt.get() == Alliance.Red) {
             return robotY <= splitY;
-
         } else {
             return robotY > splitY;
         }

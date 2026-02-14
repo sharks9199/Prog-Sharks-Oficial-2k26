@@ -1,0 +1,31 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "ABM1"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "ABM2"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "ABM3"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": null,
+  "choreoAuto": false
+}

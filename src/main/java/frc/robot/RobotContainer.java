@@ -11,7 +11,9 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -23,7 +25,7 @@ import frc.robot.commands.TurretManualCmd;
 import frc.robot.commands.Autos.AutoAim;
 import frc.robot.commands.Autos.SmartTrench;
 import frc.robot.generated.TunerConstants;
-
+import frc.robot.subsystems.LEDSubsystem;
 // SUBSYSTEMS
 import frc.robot.subsystems.Intake.Intake;
 import frc.robot.subsystems.Intake.IntakeIO;
@@ -40,7 +42,7 @@ import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOLimelight;
-
+import frc.robot.util.FieldConstants.FieldPoses;
 import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.shooter.FlyWheel.FlyWheelIO;
 import frc.robot.subsystems.shooter.FlyWheel.FlyWheelIOComp;
@@ -58,6 +60,7 @@ public class RobotContainer {
     private final Vision vision;
     private final Shooter shooter;
     private final Intake intake;
+    private final LEDSubsystem leds;
 
     // SIMULAÇÃO
     private Pose3d coralPose = new Pose3d(1, 1, 0, new Rotation3d());
@@ -146,9 +149,9 @@ public class RobotContainer {
         drive.setDefaultCommand(
             DriveCommands.joystickDrive(
                 drive,
-                () -> -joystick1.getY(),
-                () -> -joystick1.getX(),
-                () -> joystick1.getZ())
+                () -> joystick1.getY(),
+                () -> joystick1.getX(),
+                () -> joystick1.getRawAxis(4))
                 .alongWith(Commands.run(() -> updateVisionCorrection())));
 
         // 2. SHOOTER (Torre Manual)
@@ -157,6 +160,23 @@ public class RobotContainer {
 
         // 3. INTAKE
         intake.setDefaultCommand(intake.getMaintainPositionCommand());
+
+leds = new LEDSubsystem(
+            () -> {
+                var alliance = DriverStation.getAlliance();
+                Translation2d target = (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red) 
+                                       ? FieldPoses.kHubRed 
+                                       : FieldPoses.kHubBlue;
+                                       
+                return shooter.isAlignedToTarget(drive.getPose(), target);
+            }, 
+
+            () -> !vision.getVisionMeasurements().isEmpty(), 
+            () -> {
+                var speeds = drive.getChassisSpeeds(); 
+                return Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
+            }
+        );
 
         configureButtonBindings();
     }
@@ -199,14 +219,8 @@ public class RobotContainer {
         return autoChooser.get();
     }
 
-    /**
-     * Atualiza a odometria com dados de visão (Múltiplas câmeras).
-     */
     public void updateVisionCorrection() {
-        // Pega a lista de todas as medições de todas as câmeras
         var measurements = vision.getVisionMeasurements();
-
-        // Itera sobre cada medição válida e adiciona ao estimador de pose
         for (var est : measurements) {
             drive.addVisionMeasurement(
                     est.pose(),

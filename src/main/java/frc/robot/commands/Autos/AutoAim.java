@@ -6,6 +6,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard; // <-- Import adicionado
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.util.FieldConstants.FieldPoses;
 import frc.robot.subsystems.shooter.Shooter;
@@ -20,7 +21,7 @@ public class AutoAim extends Command {
     private final double kMaxTurretAngle = 90.0;
 
     private final double kShootingRPM = 3500.0; 
-    private final double kFeederVolts = 10.0; // Força do empurrador
+    private final double kFeederVolts = 10.0;
     
 
     public AutoAim(Shooter shooter, Supplier<Pose2d> robotPoseSupplier) {
@@ -61,6 +62,8 @@ public class AutoAim extends Command {
 
         boolean readyToShoot = shooter.isReadyToShoot(finalPivotSetpoint, safeTurretSetpoint);
 
+        SmartDashboard.putBoolean("ReadyToScore", readyToShoot);
+
         if (readyToShoot) {
             shooter.runFeeder(kFeederVolts);
             Logger.recordOutput("AutoAim/Status", "ATIRANDO!");
@@ -78,5 +81,7 @@ public class AutoAim extends Command {
         shooter.stop(); 
         shooter.setFlywheelVelocity(0);
         shooter.runFeeder(0);
+
+        SmartDashboard.putBoolean("ReadyToScore", false);
     }
 }

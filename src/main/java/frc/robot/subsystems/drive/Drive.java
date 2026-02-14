@@ -42,6 +42,7 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.DeferredCommand;
@@ -57,10 +58,11 @@ import frc.robot.util.LocalADStarAK;
 public class Drive extends SubsystemBase {
   private Rotation2d driverGyroOffset = new Rotation2d();
 
-  private PIDConstants translationPID = new PIDConstants(12.0, 0.0, 0.0);
+  private PIDConstants translationPID = new PIDConstants(14.0, 0.0, 0.0);
   private PIDConstants rotationPID = new PIDConstants(32.0, 0.0, 0.0);
 
   private Pose2d currentTargetPose = new Pose2d();
+  private final Field2d field = new Field2d();
 
   // TunerConstants doesn't include these constants, so they are declared locally
   static final double ODOMETRY_FREQUENCY = new CANBus(TunerConstants.DrivetrainConstants.CANBusName).isNetworkFD()
@@ -138,6 +140,16 @@ public class Drive extends SubsystemBase {
     SmartDashboard.putNumber("PidPathFind/Rotation_kI", rotationPID.kI);
     SmartDashboard.putNumber("PidPathFind/Rotation_kD", rotationPID.kD);
 
+    SmartDashboard.putData("Field", field);
+
+    PathPlannerLogging.setLogActivePathCallback((poses) -> {
+            field.getObject("Caminho Teorico").setPoses(poses);
+        });
+
+        PathPlannerLogging.setLogTargetPoseCallback((pose) -> {
+            field.getObject("Wanted Position").setPose(pose);
+        });
+
     // Configure AutoBuilder for PathPlanner
     AutoBuilder.configure(
         this::getPose,
@@ -168,7 +180,6 @@ public class Drive extends SubsystemBase {
       Logger.recordOutput("Odometry/TrajectorySetpoint", targetPose);
     });
 
-
     // Configure SysId
     sysId = new SysIdRoutine(
         new SysIdRoutine.Config(
@@ -180,7 +191,6 @@ public class Drive extends SubsystemBase {
             (voltage) -> runCharacterization(voltage.in(Volts)), null, this));
   } // --- FIM DO CONSTRUTOR ---
 
-
   public void zeroHeading() {
     driverGyroOffset = getPose().getRotation();
   }
@@ -189,7 +199,8 @@ public class Drive extends SubsystemBase {
   public void periodic() {
 
     Pose2d currentPose = getPose(); // Sua posição atual
-
+    field.setRobotPose(getPose());
+    
     if (DriverStation.isEnabled()) {
 
       double errorX = currentTargetPose.getX() - currentPose.getX();
@@ -334,7 +345,7 @@ public class Drive extends SubsystemBase {
   }
 
   @AutoLogOutput(key = "SwerveChassisSpeeds/Measured")
-  private ChassisSpeeds getChassisSpeeds() {
+  public ChassisSpeeds getChassisSpeeds() {
     return kinematics.toChassisSpeeds(getModuleStates());
   }
 
@@ -404,7 +415,6 @@ public class Drive extends SubsystemBase {
   public Command pathfindThenFollowPath(Supplier<PathPlannerPath> _path) {
     return new DeferredCommand(
         () -> AutoBuilder.pathfindThenFollowPath(_path.get(), AutoConstants.constraintsAuto),
-        Set.of(this)
-    );
+        Set.of(this));
   }
 }

@@ -8,7 +8,7 @@ import edu.wpi.first.math.MathUtil;
 import frc.robot.subsystems.Intake.IntakeConstants.intakeConstants;
 
 public class IntakeIOComp implements IntakeIO {
-    
+
     private final TalonFX rotationMotor;
     private final TalonFX wheelMotor;
 
@@ -18,13 +18,19 @@ public class IntakeIOComp implements IntakeIO {
 
         var config = new TalonFXConfiguration();
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
-        config.CurrentLimits.SupplyCurrentLimit = 40.0;
+        config.CurrentLimits.SupplyCurrentLimit = 30.0;
         config.CurrentLimits.SupplyCurrentLimitEnable = true;
         config.Feedback.SensorToMechanismRatio = intakeConstants.RotationGearRatio;
+        config.Slot0.kP = 45.0;
+        config.Slot0.kI = 0.0;
+        config.Slot0.kD = 0.5;
+
+        config.Slot0.kS = 0.15;
+        config.Slot0.kV = 0.12;
 
         rotationMotor.getConfigurator().apply(config);
         rotationMotor.setPosition(0.0);
-        
+
         wheelMotor.getConfigurator().apply(config);
     }
 
@@ -41,38 +47,38 @@ public class IntakeIOComp implements IntakeIO {
     }
 
     @Override
-    public double getPosition(){
+    public double getPosition() {
         return rotationMotor.getPosition().getValueAsDouble();
     }
 
     @Override
-    public double getSpeed(){
+    public double getSpeed() {
         return rotationMotor.getVelocity().getValueAsDouble();
     }
 
     @Override
-    public double getSetpoint(){
+    public double getSetpoint() {
         return intakeConstants.intakeSetpoint;
     }
 
     @Override
-    public void setStopMode(){
+    public void setStopMode() {
         rotationMotor.set(0);
     }
 
     @Override
-    public void setPlanetary(double speed){
+    public void setPlanetary(double speed) {
         speed = MathUtil.clamp(speed, -intakeConstants.IntakeMaxSpeed, intakeConstants.IntakeMaxSpeed);
         rotationMotor.set(speed);
     }
 
     @Override
-    public void setIntake(double speed){
+    public void setIntake(double speed) {
         wheelMotor.set(speed);
     }
 
     @Override
-    public void changeSetpoint(double setpoint){
+    public void changeSetpoint(double setpoint) {
         intakeConstants.intakeSetpoint = setpoint;
     }
 }

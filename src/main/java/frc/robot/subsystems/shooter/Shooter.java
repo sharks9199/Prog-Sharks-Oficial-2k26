@@ -49,6 +49,8 @@ public class Shooter extends SubsystemBase {
     private final double kSpitRpm = 1000.0;
     private final double kFeederSpitRpm = 1000.0;
 
+    private boolean hasReachedSpeed = false;
+
     public Shooter(TurretIO turretIO, PivotIO pivotIO, FlyWheelIO flywheelIO) {
         this.turretIO = turretIO;
         this.pivotIO = pivotIO;
@@ -105,17 +107,23 @@ public class Shooter extends SubsystemBase {
         return currentFlywheelTargetRpm > 100 && error <= kFlywheelToleranceRpm;
     }
 
-    private Command runShootSequence(double flywheelTargetRpm, double feederTargetRpm) {
+private Command runShootSequence(double flywheelTargetRpm, double feederTargetRpm) {
         return this.run(() -> {
             setFlywheelVelocity(flywheelTargetRpm);
-
             if (isFlywheelAtSpeed()) {
+                hasReachedSpeed = true;
+            }
+            if (hasReachedSpeed) {
                 runFeeder(feederTargetRpm);
             } else {
                 runFeeder(0.0);
             }
         })
+        .beforeStarting(() -> {
+            hasReachedSpeed = false; 
+        })
         .finallyDo(() -> {
+            hasReachedSpeed = false; 
             stop();
         });
     }
@@ -200,6 +208,22 @@ public class Shooter extends SubsystemBase {
             runFeeder(0);
             Logger.recordOutput("Shooter/TestMode", "Force Feeder OFF");
         });
+    }
+
+        public boolean isAlignedToTarget(Pose2d robotPose, Translation2d targetLocation) {
+        double targetTurretAngle = calculateTurretAngle(robotPose, targetLocation);
+        double safeTurretSetpoint = MathUtil.clamp(targetTurretAngle, -90.0, 90.0);
+        
+        double distToTarget = getDistanceToTarget(robotPose, targetLocation);
+        double targetPivotAngle = calculatePivotAngleNumeric(distToTarget);
+        if (Double.isNaN(targetPivotAngle)) {
+            targetPivotAngle = 45.0;
+        }
+
+        double turretError = Math.abs(getTurretPosition() - safeTurretSetpoint);
+        double pivotError = Math.abs(getPivotPosition() - targetPivotAngle);
+
+        return (turretError < kTurretToleranceDeg) && (pivotError < kPivotToleranceDeg);
     }
 
     public void stop() {
