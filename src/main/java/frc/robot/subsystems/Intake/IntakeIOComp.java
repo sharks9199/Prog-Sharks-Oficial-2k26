@@ -1,43 +1,42 @@
-package frc.robot.subsystems.Intake;
+package frc.robot.subsystems.intake;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.MathUtil;
-import frc.robot.subsystems.Intake.IntakeConstants.intakeConstants;
+import edu.wpi.first.wpilibj.DutyCycleEncoder; // IMPORTANTE
+import frc.robot.subsystems.intake.IntakeConstants.intakeConstants;
 
 public class IntakeIOComp implements IntakeIO {
 
     private final TalonFX rotationMotor;
     private final TalonFX wheelMotor;
+    private final DutyCycleEncoder absoluteEncoder;
 
     public IntakeIOComp() {
         rotationMotor = new TalonFX(intakeConstants.RotationMotorID);
         wheelMotor = new TalonFX(intakeConstants.WheelMotorID);
+        
+        absoluteEncoder = new DutyCycleEncoder(intakeConstants.ThroughBoreEncoderPort);
 
         var config = new TalonFXConfiguration();
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         config.CurrentLimits.SupplyCurrentLimit = 30.0;
         config.CurrentLimits.SupplyCurrentLimitEnable = true;
-        config.Feedback.SensorToMechanismRatio = intakeConstants.RotationGearRatio;
-        config.Slot0.kP = 45.0;
-        config.Slot0.kI = 0.0;
-        config.Slot0.kD = 0.5;
-
-        config.Slot0.kS = 0.15;
-        config.Slot0.kV = 0.12;
 
         rotationMotor.getConfigurator().apply(config);
-        rotationMotor.setPosition(0.0);
-
         wheelMotor.getConfigurator().apply(config);
     }
 
     @Override
     public void updateInputs(IntakeIOInputs inputs) {
-        inputs.rotationPosition = rotationMotor.getPosition().getValueAsDouble();
-        inputs.rotationVelocity = rotationMotor.getVelocity().getValueAsDouble();
+        double rawPosition = 1.0 - absoluteEncoder.get();
+        
+        inputs.rotationPosition = rawPosition - intakeConstants.EncoderOffset;
+        
+        inputs.rotationVelocity = rotationMotor.getVelocity().getValueAsDouble() / 25.0;
+        
         inputs.rotationAppliedVolts = rotationMotor.getMotorVoltage().getValueAsDouble();
         inputs.rotationCurrentAmps = rotationMotor.getSupplyCurrent().getValueAsDouble();
 
@@ -48,12 +47,13 @@ public class IntakeIOComp implements IntakeIO {
 
     @Override
     public double getPosition() {
-        return rotationMotor.getPosition().getValueAsDouble();
+        // INVERTIDO AQUI TAMBÉM
+        return (1.0 - absoluteEncoder.get()) - intakeConstants.EncoderOffset;
     }
 
     @Override
     public double getSpeed() {
-        return rotationMotor.getVelocity().getValueAsDouble();
+        return rotationMotor.getVelocity().getValueAsDouble() / 25.0; 
     }
 
     @Override

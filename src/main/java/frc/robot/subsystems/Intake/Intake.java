@@ -1,4 +1,4 @@
-package frc.robot.subsystems.Intake;
+package frc.robot.subsystems.intake;
 
 import java.util.function.Supplier;
 
@@ -11,7 +11,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import org.littletonrobotics.junction.Logger;
 
 import frc.robot.Constants.OIConstants;
-import frc.robot.subsystems.Intake.IntakeConstants.intakeConstants;
+import frc.robot.subsystems.intake.IntakeIOInputsAutoLogged;
+import frc.robot.subsystems.intake.IntakeConstants.intakeConstants;
 
 public class Intake extends SubsystemBase {
 
@@ -21,13 +22,13 @@ public class Intake extends SubsystemBase {
     private boolean isIntakeActive = false;
 
     private final ProfiledPIDController upController = new ProfiledPIDController(
-        1.0, 0.0, 0.0, 
+        0.7, 0.0, 0.0, 
         new TrapezoidProfile.Constraints(350, 300)
     );
     
     private final ProfiledPIDController downController = new ProfiledPIDController(
         0.3, 0.0, 0.0, 
-        new TrapezoidProfile.Constraints(150, 100)
+        new TrapezoidProfile.Constraints(250, 100)
     );
 
 public Intake(IntakeIO io) {
@@ -40,15 +41,18 @@ public Intake(IntakeIO io) {
         io.updateInputs(inputs);
         Logger.processInputs("Intake", inputs);
 
-        SmartDashboard.putNumber("IntakePosition", getPosition());
-        SmartDashboard.putNumber("IntakeSpeed", getSpeed());
-        SmartDashboard.putNumber("Intake Setpoint", getSetpoint());
-        SmartDashboard.putBoolean("Intake Is Active", isIntakeActive);
+        SmartDashboard.putNumber("Intake/IntakePosition", getPosition());
+        SmartDashboard.putNumber("Intake/IntakeSpeed", getSpeed());
+        SmartDashboard.putNumber("Intake/Intake Setpoint", getSetpoint());
+        SmartDashboard.putBoolean("Intake/Intake Is Active", isIntakeActive);
 
-        SmartDashboard.putNumber("IntakeApplied Volts", inputs.rotationAppliedVolts);
-        SmartDashboard.putNumber("IntakeCurrent Amps", inputs.rotationCurrentAmps);
+        SmartDashboard.putNumber("Intake/StowedPosition", intakeConstants.StowedPosition);
+        SmartDashboard.putNumber("Intake/CollectPosition", intakeConstants.CollectPosition);
+        SmartDashboard.putNumber("Intake/ABSOLUTE POSITION REAL", getPosition());
+        SmartDashboard.putNumber("Intake/IntakeApplied Volts", inputs.rotationAppliedVolts);
+        SmartDashboard.putNumber("Intake/IntakeCurrent Amps", inputs.rotationCurrentAmps);
     }
-
+    
     // --- GETTERS ---
     public double getPosition() {
         return inputs.rotationPosition;

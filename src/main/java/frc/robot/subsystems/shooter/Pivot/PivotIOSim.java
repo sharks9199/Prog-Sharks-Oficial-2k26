@@ -22,7 +22,6 @@ public class PivotIOSim implements PivotIO {
       Math.toRadians(0)
   );
 
-  // --- CONTROLE ---
   private final ProfiledPIDController controller = new ProfiledPIDController(
       20.0, 0.0, 0.0,
       new TrapezoidProfile.Constraints(

@@ -12,7 +12,6 @@ import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 
 public class TurretIOSim implements TurretIO {
 
-  // --- FÍSICA ---
   private final SingleJointedArmSim sim = new SingleJointedArmSim(
       DCMotor.getKrakenX60(1), 
       50.0,
@@ -33,9 +32,9 @@ public class TurretIOSim implements TurretIO {
   );
 
   private final SimpleMotorFeedforward ff = new SimpleMotorFeedforward(
-      0.0,  // Simulação perfeita não tem muito atrito estático
-      0.1,  // kV
-      0.01  // kA
+      0.0,  
+      0.1,
+      0.01
   );
 
   private double appliedVolts = 0.0;

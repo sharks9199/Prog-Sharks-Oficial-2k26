@@ -17,8 +17,8 @@ public class AutoAim extends Command {
     private final Supplier<Pose2d> robotPoseSupplier;
     private Translation2d targetLocation;
 
-    private final double kMinTurretAngle = -90.0;
-    private final double kMaxTurretAngle = 90.0;
+    private final double kMinTurretAngle = -110.0;
+    private final double kMaxTurretAngle = 35.0;
 
     private final double kShootingRPM = 3500.0; 
     private final double kFeederVolts = 10.0;
@@ -28,6 +28,7 @@ public class AutoAim extends Command {
         this.shooter = shooter;
         this.robotPoseSupplier = robotPoseSupplier;
         addRequirements(shooter);
+        SmartDashboard.putBoolean("ReadyToScore", false);
     }
 
     @Override
@@ -58,7 +59,7 @@ public class AutoAim extends Command {
         }
         shooter.setPivotPosition(finalPivotSetpoint);
 
-        //shooter.setFlywheelVelocity(kShootingRPM);
+        shooter.setFlywheelVelocity(kShootingRPM);
 
         boolean readyToShoot = shooter.isReadyToShoot(finalPivotSetpoint, safeTurretSetpoint);
 

@@ -90,7 +90,6 @@ public class DriveCommands {
           // Square rotation value for more precise control
           omega = Math.copySign(omega * omega, omega);
 
-          // --- INÍCIO DA MODIFICACAO ---
           // Calcule as velocidades *desejadas* (antes do filtro)
           double desiredX = linearVelocity.getX() * drive.getMaxLinearSpeedMetersPerSec();
           double desiredY = linearVelocity.getY() * drive.getMaxLinearSpeedMetersPerSec();

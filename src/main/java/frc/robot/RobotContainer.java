@@ -15,6 +15,10 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.PowerDistribution;
+import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
@@ -26,19 +30,16 @@ import frc.robot.commands.Autos.AutoAim;
 import frc.robot.commands.Autos.SmartTrench;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.LEDSubsystem;
-// SUBSYSTEMS
-import frc.robot.subsystems.Intake.Intake;
-import frc.robot.subsystems.Intake.IntakeIO;
-import frc.robot.subsystems.Intake.IntakeIOComp;
-import frc.robot.subsystems.Intake.IntakeIOSim;
-
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.GyroIO;
 import frc.robot.subsystems.drive.GyroIOPigeon2;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOComp;
 import frc.robot.subsystems.drive.ModuleIOSim;
-
+import frc.robot.subsystems.intake.Intake;
+import frc.robot.subsystems.intake.IntakeIO;
+import frc.robot.subsystems.intake.IntakeIOComp;
+import frc.robot.subsystems.intake.IntakeIOSim;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOLimelight;
@@ -74,10 +75,12 @@ public class RobotContainer {
     private final Joystick joystick1 = new Joystick(OIConstants.kDriverControllerPort);
     private final Joystick joystick2 = new Joystick(OIConstants.kSecondDriverControllerPort);
 
-    // Botão extra de teste no controle 2
     private final JoystickButton buttonTeste = new JoystickButton(joystick2, 12);
 
     private final LoggedDashboardChooser<Command> autoChooser;
+
+    private final PowerDistribution pdh = new PowerDistribution(30, ModuleType.kRev);
+    private String currentStateString = "INICIANDO";
 
     public RobotContainer() {
 
@@ -91,7 +94,6 @@ public class RobotContainer {
                         new ModuleIOComp(TunerConstants.BackLeft),
                         new ModuleIOComp(TunerConstants.BackRight));
 
-                // --- ATUALIZADO: DUAS LIMELIGHTS ---
                 vision = new Vision(
                         new VisionIOLimelight("limelight-front", drive::getRotation),
                         new VisionIOLimelight("limelight-back", drive::getRotation)
@@ -138,11 +140,10 @@ public class RobotContainer {
         NamedCommands.registerCommand("Auto Aim", new AutoAim(shooter, drive::getPose));
         NamedCommands.registerCommand("Reset Turret", Commands.runOnce(() -> shooter.setTurretSetpoint(0.0), shooter));
 
-        // Build Auto Chooser
         autoChooser = new LoggedDashboardChooser<>("Auto Choices", AutoBuilder.buildAutoChooser());
 
         // =================================================================
-        // DEFAULT COMMANDS (Comandos que rodam sempre que nada mais está rodando)
+        // DEFAULT COMMANDS E TELEMETRIA DE BACKGROUND
         // =================================================================
 
         // 1. DRIVE
@@ -152,7 +153,8 @@ public class RobotContainer {
                 () -> joystick1.getY(),
                 () -> joystick1.getX(),
                 () -> joystick1.getRawAxis(4))
-                .alongWith(Commands.run(() -> updateVisionCorrection())));
+                .alongWith(Commands.run(() -> updateVisionCorrection()))
+        );
 
         // 2. SHOOTER (Torre Manual)
         shooter.setDefaultCommand(
@@ -161,7 +163,13 @@ public class RobotContainer {
         // 3. INTAKE
         intake.setDefaultCommand(intake.getMaintainPositionCommand());
 
-leds = new LEDSubsystem(
+        // 4. TELEMETRIA EM BACKGROUND (Novo método limpo!)
+        Commands.run(this::updateTelemetryAndState)
+                .ignoringDisable(true)
+                .withName("Telemetria e Estado")
+                .schedule();
+
+        leds = new LEDSubsystem(
             () -> {
                 var alliance = DriverStation.getAlliance();
                 Translation2d target = (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red) 
@@ -182,10 +190,6 @@ leds = new LEDSubsystem(
     }
 
     private void configureButtonBindings() {
-        // =================================================================
-        // BOTÕES - AÇÕES
-        // =================================================================
-
         // --- TIRO E MANIPULAÇÃO ---
         new JoystickButton(joystick1, OIConstants.kShootidx)
                 .whileTrue(shooter.shootCommand());
@@ -202,7 +206,6 @@ leds = new LEDSubsystem(
 
         new JoystickButton(joystick1, OIConstants.kThroughtTrenchIdx)
                 .whileTrue(SmartTrench.run(drive));
-
 
         // --- RESET E CONFIGURAÇÃO ---
         new JoystickButton(joystick1, OIConstants.kResetFrontIdx)
@@ -227,6 +230,52 @@ leds = new LEDSubsystem(
                     est.timestamp(),
                     est.stdDevs());
         }
+    }
+
+    public void updateTelemetryAndState() {
+        SmartDashboard.putNumber("Energia/TensaoBateria_V", RobotController.getBatteryVoltage());
+        SmartDashboard.putNumber("Energia/CorrenteTotalPDH_A", pdh.getTotalCurrent());
+        SmartDashboard.putNumber("RobotState/TempoDePartida", DriverStation.getMatchTime());
+
+        var speeds = drive.getChassisSpeeds();
+        
+        double linearSpeedMps = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
+        SmartDashboard.putNumber("Drive/Velocidade_Mps", linearSpeedMps);
+        
+        double angularSpeedDegps = Math.toDegrees(speeds.omegaRadiansPerSecond);
+        SmartDashboard.putNumber("Drive/CompensacaoAngular_DegPs", angularSpeedDegps);
+        // ==========================================
+        if (joystick1.getRawButton(OIConstants.kShootidx)) {
+            currentStateString = "ATIRANDO";
+        } 
+        else if (joystick1.getRawButton(OIConstants.kAutoAimIdx)) {
+            currentStateString = "AUTO AIM";
+        } 
+        else if (joystick1.getRawButton(OIConstants.kIntakeIdx)) {
+            currentStateString = "INTAKE";
+        }
+        else if (joystick1.getRawButton(OIConstants.kThroughtTrenchIdx)) {
+            currentStateString = "ATRAVESSANDO TRENCH";
+        } 
+        else {
+            Pose2d pose = drive.getPose();
+            double x = pose.getX();
+            double y = pose.getY();
+
+            if (x > 5.8 && x < 10.7) {
+                currentStateString = "ZONA NEUTRA";
+            } 
+            else if (x <= 5.8 && y > 6.0) { 
+                currentStateString = "LEFT TRENCH";
+            } 
+            else if (x >= 10.7) {
+                currentStateString = "ZONA INIMIGA";
+            } 
+            else {
+                currentStateString = "BASE";
+            }
+        }
+        SmartDashboard.putString("RobotState/AcaoAtual", currentStateString);
     }
 
     public void simulationPeriodic() {

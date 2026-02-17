@@ -1,4 +1,4 @@
-package frc.robot.subsystems.Intake;
+package frc.robot.subsystems.intake;
 
 import org.littletonrobotics.junction.AutoLog;
 
@@ -6,8 +6,9 @@ public interface IntakeIO {
 
     @AutoLog
     public static class IntakeIOInputs {
+        public double absolutePosition = 0.0;
         // Rotation Motor
-        public double rotationPosition = 0.0;
+        public double rotationPosition = 0.0; 
         public double rotationVelocity = 0.0;
         public double rotationAppliedVolts = 0.0;
         public double rotationCurrentAmps = 0.0;
