@@ -32,7 +32,7 @@ public class PivotIOComp implements PivotIO {
     config.MotorOutput.NeutralMode = NeutralModeValue.Brake; 
     config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive; 
 
-    config.Feedback.SensorToMechanismRatio = 50.0; 
+    config.Feedback.SensorToMechanismRatio = 106.5; 
 
     // --- PID ---
     config.Slot0.kP = 95.0; 

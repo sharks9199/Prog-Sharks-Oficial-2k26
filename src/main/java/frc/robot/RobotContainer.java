@@ -135,7 +135,7 @@ public class RobotContainer {
         }
 
         // =================================================================
-        // CONECTANDO O AUTO AIM (Adicionado aqui!)
+        // CONECTANDO O AUTO AIM
         // =================================================================
         shooter.setupAutoAimReferences(
                 drive::getPose,
@@ -161,7 +161,6 @@ public class RobotContainer {
         NamedCommands.registerCommand("SpinUp Flywheel",
                 Commands.runOnce(() -> shooter.setFlywheelVelocity(3500.0), shooter));
 
-        // Atualizado para usar a função do Shooter
         NamedCommands.registerCommand("Toggle Auto Aim", Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
         NamedCommands.registerCommand("Reset Turret", Commands.runOnce(() -> shooter.setTurretSetpoint(0.0), shooter));
 
@@ -213,13 +212,15 @@ public class RobotContainer {
     }
 
     private void configureButtonBindings() {
+        // --- GATILHO DE TIRO ---
         new Trigger(() -> joystick1.getRawAxis(3) > 0.5)
                 .whileTrue(shooter.shootCommand());
 
-        // --- MIRA AUTOMÁTICA (Restaurado para o original!) ---
+        // --- MIRA AUTOMÁTICA (MODO TOGGLE CORRIGIDO) ---
         new JoystickButton(joystick1, OIConstants.kAutoAimIdx)
-                .whileTrue(new frc.robot.commands.Autos.AutoAim(shooter, drive::getPose));
-        // --- INTAKE TOGGLE ---
+                .onTrue(Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
+
+        // --- INTAKE ---
         new JoystickButton(joystick1, OIConstants.kIntakeIdx)
                 .onTrue(intake.getToggleIntakeCommand());
 
@@ -269,7 +270,7 @@ public class RobotContainer {
 
         if (joystick1.getRawAxis(3) > 0.5) {
             currentStateString = "ATIRANDO";
-        } else if (joystick1.getRawButton(OIConstants.kAutoAimIdx)) {
+        } else if (shooter.isAutoAimEnabled()) { // Melhorado para ler o status real
             currentStateString = "AUTO AIM";
         } else if (joystick1.getRawButton(OIConstants.kIntakeIdx)) {
             currentStateString = "INTAKE";
