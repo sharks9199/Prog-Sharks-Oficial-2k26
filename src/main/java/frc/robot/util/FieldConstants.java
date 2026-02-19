@@ -12,42 +12,8 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 
 public class FieldConstants {
     public static final class FieldPoses {
-        // Load the path you want to follow using its name in the GUI
-        public static PathPlannerPath kTrenchBlueLeftPathIn;
-        public static PathPlannerPath kTrenchBlueRightPathIn;
-        public static PathPlannerPath kTrenchRedLeftPathIn;
-        public static PathPlannerPath kTrenchRedRightPathIn;
-
-        public static PathPlannerPath kTrenchBlueLeftPathOut;
-        public static PathPlannerPath kTrenchBlueRightPathOut;
-        public static PathPlannerPath kTrenchRedLeftPathOut;
-        public static PathPlannerPath kTrenchRedRightPathOut;
 
         public static final Optional<Alliance> alliance = DriverStation.getAlliance();
-
-        static {
-            try {
-                // In
-                kTrenchBlueLeftPathIn = PathPlannerPath.fromPathFile("BlueLeftTrenchIn");
-                kTrenchBlueRightPathIn = PathPlannerPath.fromPathFile("BlueRightTrenchIn");
-                kTrenchRedLeftPathIn = PathPlannerPath.fromPathFile("RedLeftTrenchIn");
-                kTrenchRedRightPathIn = PathPlannerPath.fromPathFile("RedRightTrenchIn");
-
-                // Out
-                kTrenchBlueLeftPathOut = PathPlannerPath.fromPathFile("BlueLeftTrenchOut");
-                kTrenchBlueRightPathOut = PathPlannerPath.fromPathFile("BlueRightTrenchOut");
-                kTrenchRedLeftPathOut = PathPlannerPath.fromPathFile("RedLeftTrenchOut");
-                kTrenchRedRightPathOut = PathPlannerPath.fromPathFile("RedRightTrenchOut");
-
-            } catch (Exception e) {
-                DriverStation.reportError("ERRO: Não foi possível carregar os Paths em FieldPoses!", e.getStackTrace());
-            }
-        }
-
-        // public static final Pose2d kCoralRight = alliance.get() == Alliance.Blue ?
-        // kTrenchBlueRightPath : kTrenchRedLeftPath;
-        // public static final Pose2d kCoralLeft = alliance.get() == Alliance.Blue ?
-        // kTrenchBlueRightPath : kTrenchRedRightPath;
 
         // TRENCHS
         // Posições Trench BLUE ALLIANCE
@@ -77,34 +43,56 @@ public class FieldConstants {
         // TESTEEEEEEEEEE
         public static final Pose2d kBlueClimb = new Pose2d(1.450, 4.050, new Rotation2d(Math.toRadians(180)));
 
-
-        //Filtro de saida e entrada das alianças
-        public static PathPlannerPath getAutoTrenchPath(Pose2d robotPose, boolean isLeftTrench) {
+        public static PathPlannerPath getAutoTrenchPath(Pose2d robotPose, boolean isLeftTrench, boolean isFacingForward) {
             var allianceOpt = DriverStation.getAlliance();
-            Alliance alliance = allianceOpt.isPresent() ? allianceOpt.get() : Alliance.Blue;
+            Alliance currentAlliance = allianceOpt.isPresent() ? allianceOpt.get() : Alliance.Blue;
 
             double blueZoneBoundary = 5.204;
             double redZoneBoundary = 11.285;
+            
+            boolean isInBase;
+            String pathName = "";
 
-            if (alliance == Alliance.Blue) {
-                // aliança azul
-                boolean isInBase = robotPose.getX() < blueZoneBoundary;
-
+            if (currentAlliance == Alliance.Blue) {
+                isInBase = robotPose.getX() < blueZoneBoundary;
+                
                 if (isInBase) {
-                    return isLeftTrench ? kTrenchBlueLeftPathIn : kTrenchBlueRightPathIn;
+                    if (isLeftTrench) {
+                        pathName = isFacingForward ? "BlueLeftTrenchInF" : "BlueLeftTrenchInB";
+                    } else {
+                        pathName = isFacingForward ? "BlueRightTrenchInF" : "BlueRightTrenchInB";
+                    }
                 } else {
-                    return isLeftTrench ? kTrenchBlueLeftPathOut : kTrenchBlueRightPathOut;
+                    if (isLeftTrench) {
+                        pathName = isFacingForward ? "BlueLeftTrenchOutF" : "BlueLeftTrenchOutB";
+                    } else {
+                        pathName = isFacingForward ? "BlueRightTrenchOutF" : "BlueRightTrenchOutB";
+                    }
                 }
 
-            } else {
-                // aliança vermelha
-                boolean isInBase = robotPose.getX() > redZoneBoundary;
+            } else { // Alliance.Red
+                isInBase = robotPose.getX() > redZoneBoundary;
 
                 if (isInBase) {
-                    return isLeftTrench ? kTrenchRedLeftPathIn : kTrenchRedRightPathIn;
+                    if (isLeftTrench) {
+                        pathName = isFacingForward ? "RedLeftTrenchInF" : "RedLeftTrenchInB";
+                    } else {
+                        pathName = isFacingForward ? "RedRightTrenchInF" : "RedRightTrenchInB";
+                    }
                 } else {
-                    return isLeftTrench ? kTrenchRedLeftPathOut : kTrenchRedRightPathOut;
+                    if (isLeftTrench) {
+                        pathName = isFacingForward ? "RedLeftTrenchOutF" : "RedLeftTrenchOutB";
+                    } else {
+                        pathName = isFacingForward ? "RedRightTrenchOutF" : "RedRightTrenchOutB";
+                    }
                 }
+            }
+
+            try {
+                return PathPlannerPath.fromPathFile(pathName);
+            } catch (Exception e) {
+                DriverStation.reportError("ERRO: Não foi possível carregar o Path completo: " + pathName, e.getStackTrace());
+                return null;
             }
         }
     }

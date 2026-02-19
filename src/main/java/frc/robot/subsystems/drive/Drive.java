@@ -157,7 +157,7 @@ public class Drive extends SubsystemBase {
         this::getChassisSpeeds,
         (speeds, feedforwards) -> {
 
-          speeds.omegaRadiansPerSecond = -speeds.omegaRadiansPerSecond;
+          speeds.omegaRadiansPerSecond = speeds.omegaRadiansPerSecond;
           runVelocity(speeds);
         },
         new PPHolonomicDriveController(translationPID, rotationPID),

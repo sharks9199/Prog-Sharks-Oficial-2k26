@@ -42,7 +42,7 @@ public class FlyWheelIOComp implements FlyWheelIO {
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
     config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
     config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
-    config.Slot0.kP = 1.0; 
+    config.Slot0.kP = 1.5; 
     config.Slot0.kI = 0.0;
     config.Slot0.kD = 0.0;
     config.Slot0.kV = 0.12; 
@@ -57,7 +57,7 @@ public class FlyWheelIOComp implements FlyWheelIO {
     centConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
     centConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive; 
     centConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake; 
-    centConfig.Slot0.kP = 0.1;
+    centConfig.Slot0.kP = 0.2;
     centConfig.Slot0.kI = 0.0;
     centConfig.Slot0.kD = 0.0;
     centConfig.Slot0.kV = 0.12;

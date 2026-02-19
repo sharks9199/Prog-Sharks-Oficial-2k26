@@ -21,8 +21,8 @@ public class TurretIOComp implements TurretIO {
   private final MotionMagicVoltage positionRequest = new MotionMagicVoltage(0).withSlot(0);
   private final VoltageOut voltageRequest = new VoltageOut(0);
 
-  private final DigitalInput max1LimitSwitch = new DigitalInput(1);
-  private final DigitalInput max2LimitSwitch = new DigitalInput(2);
+  private final DigitalInput max2LimitSwitch = new DigitalInput(1);
+  private final DigitalInput max1LimitSwitch = new DigitalInput(2);
 
   public TurretIOComp() {
     talon = new TalonFX(TurretConstants.kTurretMotorID); 

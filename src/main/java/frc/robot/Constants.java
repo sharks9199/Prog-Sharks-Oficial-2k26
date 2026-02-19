@@ -34,12 +34,14 @@ public final class Constants {
     // ---DRIVER BINDINGS---
     public static final int kResetFrontIdx = 3; // X
     public static final int kThroughtTrenchIdx = 1; // A
-    public static final int kIntakeIdx = 2; // B
+    public static final int kIntakeFWIdx = 2; // B
     public static final int kAutoClimbingIdx = 4; // Y
 
-    public static final int kAmpIdx = 5; // LB (Cuspir)
-    public static final int kAutoAimIdx = 6; // RB
-    public static final int KThroughtOtherAllianceTrench = 7; // LT (Resetar Pivot separado)
+    //public static final int kAmpIdx = 0;
+
+    public static final int kAutoAimIdx = 5; // LB
+    public static final int kIntakeIdx = 6; // RB
+    public static final int KThroughtOtherAllianceTrench = 7; // LT
     public static final int kShootidx = 8; // RT (Atirar)
 
     public static final int kTurretToLeftPOV = 270;

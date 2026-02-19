@@ -1,13 +1,11 @@
 package frc.robot.commands.Autos;
 
-import java.util.Optional;
 import java.util.Set;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.path.PathPlannerPath;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -24,24 +22,18 @@ public class SmartTrench {
             Pose2d currentPose = drive.getPose();
             double fieldCenterY = 4.05;
 
-            Rotation2d bestRotation;
             boolean isFacingForward = Math.cos(currentPose.getRotation().getRadians()) > 0;
-            
-            if (isFacingForward) {
-                bestRotation = Rotation2d.fromDegrees(0);
-            } else {
-                bestRotation = Rotation2d.fromDegrees(180);
-            }
-
             boolean useLeftTrenchLogic = calculateIsLeft(currentPose.getY(), fieldCenterY);
-
-            PathPlannerPath selectedPath = FieldConstants.FieldPoses.getAutoTrenchPath(currentPose, useLeftTrenchLogic);
+            PathPlannerPath selectedPath = FieldConstants.FieldPoses.getAutoTrenchPath(
+                    currentPose,
+                    useLeftTrenchLogic,
+                    isFacingForward);
 
             if (selectedPath != null) {
-                Pose2d originalStart = selectedPath.getStartingHolonomicPose().orElse(currentPose);
-                Pose2d smartStartPose = new Pose2d(originalStart.getTranslation(), bestRotation);
+                Pose2d smartStartPose = selectedPath.getStartingHolonomicPose().orElse(currentPose);
 
                 double goalVelocity = 0.5;
+
                 Command pathfind = AutoBuilder.pathfindToPose(
                         smartStartPose,
                         AutoConstants.constraints,

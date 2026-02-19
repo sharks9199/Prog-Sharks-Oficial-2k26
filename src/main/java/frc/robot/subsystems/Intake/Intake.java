@@ -20,6 +20,7 @@ public class Intake extends SubsystemBase {
     private final IntakeIOInputsAutoLogged inputs = new IntakeIOInputsAutoLogged();
 
     private boolean isIntakeActive = false;
+    private boolean isRollerActive = false; // Controle de estado dos roletes
 
     private final ProfiledPIDController upController = new ProfiledPIDController(
         0.7, 0.0, 0.0, 
@@ -27,11 +28,11 @@ public class Intake extends SubsystemBase {
     );
     
     private final ProfiledPIDController downController = new ProfiledPIDController(
-        0.3, 0.0, 0.0, 
-        new TrapezoidProfile.Constraints(250, 100)
+        0.4, 0.0, 0.00001, 
+        new TrapezoidProfile.Constraints(350, 300)
     );
 
-public Intake(IntakeIO io) {
+    public Intake(IntakeIO io) {
         this.io = io;
         intakeConstants.intakeSetpoint = intakeConstants.StowedPosition;
     }
@@ -45,6 +46,7 @@ public Intake(IntakeIO io) {
         SmartDashboard.putNumber("Intake/IntakeSpeed", getSpeed());
         SmartDashboard.putNumber("Intake/Intake Setpoint", getSetpoint());
         SmartDashboard.putBoolean("Intake/Intake Is Active", isIntakeActive);
+        SmartDashboard.putBoolean("Intake/Rollers Are Active", isRollerActive); // Nova telemetria
 
         SmartDashboard.putNumber("Intake/StowedPosition", intakeConstants.StowedPosition);
         SmartDashboard.putNumber("Intake/CollectPosition", intakeConstants.CollectPosition);
@@ -87,6 +89,7 @@ public Intake(IntakeIO io) {
     public void stop(){
         io.setPlanetary(0);
         io.setIntake(0);
+        isRollerActive = false;
     }
 
     public Command getMaintainPositionCommand() {
@@ -106,7 +109,7 @@ public Intake(IntakeIO io) {
     }
 
     /**
-     * COMANDO TOGGLE (Alternar)
+     * COMANDO TOGGLE (Alternar) Posição do braço do Intake
      */
     public Command getToggleIntakeCommand() {
         return runOnce(() -> {
@@ -118,8 +121,28 @@ public Intake(IntakeIO io) {
         });
     }
 
+    /**
+     * COMANDO TOGGLE DOS ROLETES (Liga/Desliga apenas o flywheel)
+     */
+    public Command getToggleRollersCommand() {
+        return runOnce(() -> {
+            if (isRollerActive) {
+                // Se está ligado, desliga
+                setIntake(0);
+                isRollerActive = false;
+                System.out.println("Intake: ROLETES DESLIGADOS");
+            } else {
+                // Se está desligado, liga
+                setIntake(intakeConstants.RollerSpeedCollect);
+                isRollerActive = true;
+                System.out.println("Intake: ROLETES LIGADOS");
+            }
+        });
+    }
+
     private void deploy() {
         isIntakeActive = true;
+        isRollerActive = true; // Sincroniza o estado do rolete
         intakeConstants.intakeCollecting = true;
         changeSetpoint(intakeConstants.CollectPosition);
 
@@ -132,6 +155,7 @@ public Intake(IntakeIO io) {
 
     private void retract() {
         isIntakeActive = false;
+        isRollerActive = false; // Sincroniza o estado do rolete
         intakeConstants.intakeCollecting = false;
         
         changeSetpoint(intakeConstants.StowedPosition); 
@@ -170,18 +194,23 @@ public Intake(IntakeIO io) {
             }
             setPlanetary(output);
 
-            // Controle das Rodas Manual
             if (inBtn.get()) {
                 setIntake(intakeConstants.RollerSpeedManual);
+                isRollerActive = true;
             } else if (outBtn.get()) {
                 setIntake(intakeConstants.RollerSpeedEject);
+                isRollerActive = true;
             } else {
-                setIntake(0);
+                if(!isIntakeActive){
+                    setIntake(0);
+                    isRollerActive = false;
+                }
             }
 
         }).finallyDo(() -> {
             setStopMode();
             setIntake(0);
+            isRollerActive = false;
         });
     }
 }

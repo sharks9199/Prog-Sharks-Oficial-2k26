@@ -15,14 +15,14 @@ import static edu.wpi.first.units.Units.RPM;
 
 import org.littletonrobotics.junction.Logger;
 
+import java.util.function.Supplier; // <- ADICIONADO PARA FUNCIONAR
+
 import frc.robot.subsystems.shooter.Turret.TurretIO;
 import frc.robot.subsystems.shooter.Turret.TurretIOInputsAutoLogged;
 import frc.robot.subsystems.shooter.FlyWheel.FlyWheelIO;
 import frc.robot.subsystems.shooter.FlyWheel.FlyWheelIOInputsAutoLogged;
 import frc.robot.subsystems.shooter.Pivot.PivotIO;
 import frc.robot.subsystems.shooter.Pivot.PivotIOInputsAutoLogged;
-
-import edu.wpi.first.wpilibj.DutyCycleEncoder;
 
 public class Shooter extends SubsystemBase {
 
@@ -35,14 +35,19 @@ public class Shooter extends SubsystemBase {
     private final FlyWheelIO flywheelIO;
     private final FlyWheelIOInputsAutoLogged flywheelInputs = new FlyWheelIOInputsAutoLogged();
 
+    // VARIÁVEIS ADICIONADAS PARA O AUTO AIM FUNCIONAR
+    private Supplier<Pose2d> robotPoseSupplier;
+    private Supplier<Translation2d> targetSupplier;
+
     private double currentTurretTarget = 0.0;
     private double currentFlywheelTargetRpm = 0.0;
     private Translation2d lastTargetLocation = null;
 
     private final double kMinPivotAngle = 0.0;
-    private final double kMaxPivotAngle = 80.0;
-    
-    private double kPivotEncoderOffset = 10.0;
+    private final double kMaxPivotAngle = 65.0;
+
+    private double kPivotEncoderOffset = 35.0;
+
     private double kShotVelocityMPS = 18.0;
     private double kShootRpm = 4500.0;
     private double kFeederShootRpm = 3000.0;
@@ -62,11 +67,13 @@ public class Shooter extends SubsystemBase {
 
     private boolean hasReachedSpeed = false;
 
+    private boolean autoAimEnabled = false;
+
     public Shooter(TurretIO turretIO, PivotIO pivotIO, FlyWheelIO flywheelIO) {
         this.turretIO = turretIO;
         this.pivotIO = pivotIO;
         this.flywheelIO = flywheelIO;
-        
+
         SmartDashboard.putNumber("Tuning/Shooter/PivotOffset", kPivotEncoderOffset);
         SmartDashboard.putNumber("Tuning/Shooter/ShotVelocityMPS", kShotVelocityMPS);
         SmartDashboard.putNumber("Tuning/Shooter/ShootRPM", kShootRpm);
@@ -75,15 +82,25 @@ public class Shooter extends SubsystemBase {
         SmartDashboard.putNumber("Tuning/Shooter/FeederSpitRPM", kFeederSpitRpm);
     }
 
+    // MÉTODO NOVO PARA RECEBER A POSIÇÃO DO ROBÔ DO ROBOTCONTAINER
+    public void setupAutoAimReferences(Supplier<Pose2d> robotPoseSupplier, Supplier<Translation2d> targetSupplier) {
+        this.robotPoseSupplier = robotPoseSupplier;
+        this.targetSupplier = targetSupplier;
+    }
+
     @Override
     public void periodic() {
-        kPivotEncoderOffset = SmartDashboard.getNumber("Tuning/Shooter/PivotOffset", kPivotEncoderOffset);
+        SmartDashboard.putNumber("Tuning/Shooter/PivotOffset", kPivotEncoderOffset);
+
         kShotVelocityMPS = SmartDashboard.getNumber("Tuning/Shooter/ShotVelocityMPS", kShotVelocityMPS);
         kShootRpm = SmartDashboard.getNumber("Tuning/Shooter/ShootRPM", kShootRpm);
         kFeederShootRpm = SmartDashboard.getNumber("Tuning/Shooter/FeederShootRPM", kFeederShootRpm);
         kSpitRpm = SmartDashboard.getNumber("Tuning/Shooter/SpitRPM", kSpitRpm);
         kFeederSpitRpm = SmartDashboard.getNumber("Tuning/Shooter/FeederSpitRPM", kFeederSpitRpm);
-        
+
+        SmartDashboard.putNumber("Pivot/CurrentAngle", getPivotPosition());
+        SmartDashboard.putNumber("Pivot/RawMotorRotations", pivotInputs.positionRads / (2 * Math.PI));
+
         turretIO.updateInputs(turretInputs);
         pivotIO.updateInputs(pivotInputs);
         flywheelIO.updateInputs(flywheelInputs);
@@ -93,7 +110,7 @@ public class Shooter extends SubsystemBase {
         Logger.processInputs("Shooter/Flywheel", flywheelInputs);
 
         if (turretInputs.initialLimitHit && !hasCalibratedTurret) {
-            turretIO.setEncoderPosition(Degrees.of(15.0));
+            turretIO.setEncoderPosition(Degrees.of(30.0));
             hasCalibratedTurret = true;
         }
 
@@ -110,6 +127,22 @@ public class Shooter extends SubsystemBase {
             }
         }
 
+        // ==========================================
+        // CÓDIGO CORRIGIDO DA MIRA AUTOMÁTICA AQUI
+        // ==========================================
+        if (autoAimEnabled && robotPoseSupplier != null && targetSupplier != null) {
+            Pose2d robotPose = robotPoseSupplier.get();
+            Translation2d targetLocation = targetSupplier.get();
+
+            double dist = getDistanceToTarget(robotPose, targetLocation);
+            double targetPivot = calculatePivotAngleNumeric(dist);
+            double targetTurret = calculateTurretAngle(robotPose, targetLocation);
+
+            setTurretSetpoint(targetTurret);
+            setPivotPosition(targetPivot);
+        }
+        // ==========================================
+
         currentTurretTarget = MathUtil.clamp(currentTurretTarget, kMinTurretAngle, kMaxTurretAngle);
 
         SmartDashboard.putBoolean("Turret/InitialSensor", turretInputs.initialLimitHit);
@@ -118,7 +151,7 @@ public class Shooter extends SubsystemBase {
         SmartDashboard.putBoolean("Turret/IsCalibrated", hasCalibratedTurret);
         SmartDashboard.putBoolean("Turret/LimitHitActive", limitHit);
         SmartDashboard.putNumber("Turret/CurrentAngle", getTurretPosition());
-        // ======================================================================
+        SmartDashboard.putBoolean("Shooter/AutoAimActive", autoAimEnabled);
 
         turretIO.runSetpoint(Degrees.of(currentTurretTarget));
 
@@ -182,7 +215,7 @@ public class Shooter extends SubsystemBase {
     }
 
     public Command shootCommand() {
-        return runShootSequence(kShootRpm, kFeederShootRpm); 
+        return runShootSequence(kShootRpm, kFeederShootRpm);
     }
 
     public Command spitCommand() {
@@ -210,7 +243,7 @@ public class Shooter extends SubsystemBase {
         double angleRad = Math.atan2(dy, dx);
         double angleDeg = Math.toDegrees(angleRad);
         double robotHeading = robotPose.getRotation().getDegrees();
-        return MathUtil.inputModulus(angleDeg - robotHeading, -180, 180);
+        return MathUtil.inputModulus(robotHeading - angleDeg, -180, 180);
     }
 
     public double calculatePivotAngleNumeric(double distanceMeters) {
@@ -235,13 +268,14 @@ public class Shooter extends SubsystemBase {
 
     public void setPivotPosition(double degreesReal) {
         double clampedDegrees = MathUtil.clamp(degreesReal, kMinPivotAngle, kMaxPivotAngle);
-        double motorSetpoint = clampedDegrees - kPivotEncoderOffset;
+        double motorSetpoint = clampedDegrees - 65.0;
+
         pivotIO.runSetpoint(edu.wpi.first.units.Units.Degrees.of(motorSetpoint));
         Logger.recordOutput("Shooter/Pivot/SetpointReal", clampedDegrees);
     }
 
     public double getPivotPosition() {
-        return Units.radiansToDegrees(pivotInputs.positionRads) + kPivotEncoderOffset;
+        return 65.0 + Units.radiansToDegrees(pivotInputs.positionRads);
     }
 
     public void resetTurretEncoder() {
@@ -280,10 +314,12 @@ public class Shooter extends SubsystemBase {
         return (turretError < kTurretToleranceDeg) && (pivotError < kPivotToleranceDeg);
     }
 
-    public void stop() {
+    public void toggleAutoAim() {
+        autoAimEnabled = !autoAimEnabled;
+    }
+
+public void stop() {
         currentFlywheelTargetRpm = 0.0;
-        turretIO.stop();
-        pivotIO.stop();
         flywheelIO.stop();
         runFeeder(0);
     }

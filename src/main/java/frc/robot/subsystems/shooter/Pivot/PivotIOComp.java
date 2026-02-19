@@ -19,7 +19,7 @@ public class PivotIOComp implements PivotIO {
   private final MotionMagicVoltage positionRequest = new MotionMagicVoltage(0);
   private final VoltageOut voltageRequest = new VoltageOut(0);
 
-  private final double kStartAngleDegrees = 35.0; 
+  private final double kStartAngleDegrees = 0.0; 
 
   public PivotIOComp() {
     talon = new TalonFX(PivotConstants.kPivotMotor);

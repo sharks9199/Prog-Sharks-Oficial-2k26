@@ -22,11 +22,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
-
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OIConstants;
 import frc.robot.commands.DriveCommands;
 import frc.robot.commands.TurretManualCmd;
-import frc.robot.commands.Autos.AutoAim;
 import frc.robot.commands.Autos.SmartTrench;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.LEDSubsystem;
@@ -96,8 +95,7 @@ public class RobotContainer {
 
                 vision = new Vision(
                         new VisionIOLimelight("limelight-front", drive::getRotation),
-                        new VisionIOLimelight("limelight-back", drive::getRotation)
-                );
+                        new VisionIOLimelight("limelight-back", drive::getRotation));
 
                 shooter = new Shooter(new TurretIOComp(), new PivotIOComp(), new FlyWheelIOComp());
                 intake = new Intake(new IntakeIOComp());
@@ -105,39 +103,66 @@ public class RobotContainer {
 
             case SIM:
                 drive = new Drive(
-                        new GyroIO() {},
+                        new GyroIO() {
+                        },
                         new ModuleIOSim(TunerConstants.FrontLeft),
                         new ModuleIOSim(TunerConstants.FrontRight),
                         new ModuleIOSim(TunerConstants.BackLeft),
                         new ModuleIOSim(TunerConstants.BackRight));
 
-                vision = new Vision(new VisionIO() {});
+                vision = new Vision(new VisionIO() {
+                });
                 shooter = new Shooter(new TurretIOSim(), new PivotIOSim(), new FlyWheelIOSim());
                 intake = new Intake(new IntakeIOSim());
                 break;
 
             default:
-                drive = new Drive(new GyroIO() {}, new ModuleIO() {}, new ModuleIO() {}, new ModuleIO() {}, new ModuleIO() {});
-                vision = new Vision(new VisionIO() {});
-                shooter = new Shooter(new TurretIO() {}, new PivotIO() {}, new FlyWheelIO() {});
-                intake = new Intake(new IntakeIO() {});
+                drive = new Drive(new GyroIO() {
+                }, new ModuleIO() {
+                }, new ModuleIO() {
+                }, new ModuleIO() {
+                }, new ModuleIO() {
+                });
+                vision = new Vision(new VisionIO() {
+                });
+                shooter = new Shooter(new TurretIO() {
+                }, new PivotIO() {
+                }, new FlyWheelIO() {
+                });
+                intake = new Intake(new IntakeIO() {
+                });
                 break;
         }
+
+        // =================================================================
+        // CONECTANDO O AUTO AIM (Adicionado aqui!)
+        // =================================================================
+        shooter.setupAutoAimReferences(
+                drive::getPose,
+                () -> {
+                    var alliance = DriverStation.getAlliance();
+                    return (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red)
+                            ? FieldPoses.kHubRed
+                            : FieldPoses.kHubBlue;
+                });
 
         // =================================================================
         // NAMED COMMANDS (Para usar no PathPlanner)
         // =================================================================
 
-        NamedCommands.registerCommand("Intake Start", Commands.runOnce(() -> intake.getToggleIntakeCommand().schedule()));
+        NamedCommands.registerCommand("Intake Start",
+                Commands.runOnce(() -> intake.getToggleIntakeCommand().schedule()));
         NamedCommands.registerCommand("Intake Stop", Commands.runOnce(() -> intake.stop(), intake));
 
         NamedCommands.registerCommand("Shoot", shooter.shootCommand());
         NamedCommands.registerCommand("Spit", shooter.spitCommand());
         NamedCommands.registerCommand("Stop Shooter", Commands.runOnce(() -> shooter.stop(), shooter));
 
-        NamedCommands.registerCommand("SpinUp Flywheel", Commands.runOnce(() -> shooter.setFlywheelVelocity(3500.0), shooter));
+        NamedCommands.registerCommand("SpinUp Flywheel",
+                Commands.runOnce(() -> shooter.setFlywheelVelocity(3500.0), shooter));
 
-        NamedCommands.registerCommand("Auto Aim", new AutoAim(shooter, drive::getPose));
+        // Atualizado para usar a função do Shooter
+        NamedCommands.registerCommand("Toggle Auto Aim", Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
         NamedCommands.registerCommand("Reset Turret", Commands.runOnce(() -> shooter.setTurretSetpoint(0.0), shooter));
 
         autoChooser = new LoggedDashboardChooser<>("Auto Choices", AutoBuilder.buildAutoChooser());
@@ -148,61 +173,58 @@ public class RobotContainer {
 
         // 1. DRIVE
         drive.setDefaultCommand(
-            DriveCommands.joystickDrive(
-                drive,
-                () -> joystick1.getY(),
-                () -> joystick1.getX(),
-                () -> joystick1.getRawAxis(4))
-                .alongWith(Commands.run(() -> updateVisionCorrection()))
-        );
+                DriveCommands.joystickDrive(
+                        drive,
+                        () -> -joystick1.getY(),
+                        () -> -joystick1.getX(),
+                        () -> -joystick1.getRawAxis(4))
+                        .alongWith(Commands.run(() -> updateVisionCorrection())));
 
         // 2. SHOOTER (Torre Manual)
         shooter.setDefaultCommand(
-            new TurretManualCmd(shooter, () -> joystick1.getPOV()));
+                new TurretManualCmd(shooter, () -> joystick1.getPOV()));
 
         // 3. INTAKE
         intake.setDefaultCommand(intake.getMaintainPositionCommand());
 
-        // 4. TELEMETRIA EM BACKGROUND (Novo método limpo!)
+        // 4. TELEMETRIA EM BACKGROUND
         Commands.run(this::updateTelemetryAndState)
                 .ignoringDisable(true)
                 .withName("Telemetria e Estado")
                 .schedule();
 
         leds = new LEDSubsystem(
-            () -> {
-                var alliance = DriverStation.getAlliance();
-                Translation2d target = (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red) 
-                                       ? FieldPoses.kHubRed 
-                                       : FieldPoses.kHubBlue;
-                                       
-                return shooter.isAlignedToTarget(drive.getPose(), target);
-            }, 
+                () -> {
+                    var alliance = DriverStation.getAlliance();
+                    Translation2d target = (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red)
+                            ? FieldPoses.kHubRed
+                            : FieldPoses.kHubBlue;
 
-            () -> !vision.getVisionMeasurements().isEmpty(), 
-            () -> {
-                var speeds = drive.getChassisSpeeds(); 
-                return Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
-            }
-        );
+                    return shooter.isAlignedToTarget(drive.getPose(), target);
+                },
+
+                () -> !vision.getVisionMeasurements().isEmpty(),
+                () -> {
+                    var speeds = drive.getChassisSpeeds();
+                    return Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
+                });
 
         configureButtonBindings();
     }
 
     private void configureButtonBindings() {
-        // --- TIRO E MANIPULAÇÃO ---
-        new JoystickButton(joystick1, OIConstants.kShootidx)
+        new Trigger(() -> joystick1.getRawAxis(3) > 0.5)
                 .whileTrue(shooter.shootCommand());
 
-        new JoystickButton(joystick1, OIConstants.kAmpIdx)
-                .whileTrue(shooter.spitCommand());
-
+        // --- MIRA AUTOMÁTICA (Restaurado para o original!) ---
         new JoystickButton(joystick1, OIConstants.kAutoAimIdx)
-                .whileTrue(new AutoAim(shooter, drive::getPose));
-
+                .whileTrue(new frc.robot.commands.Autos.AutoAim(shooter, drive::getPose));
         // --- INTAKE TOGGLE ---
         new JoystickButton(joystick1, OIConstants.kIntakeIdx)
                 .onTrue(intake.getToggleIntakeCommand());
+
+        new JoystickButton(joystick1, OIConstants.kIntakeFWIdx)
+                .onTrue(intake.getToggleRollersCommand());
 
         new JoystickButton(joystick1, OIConstants.kThroughtTrenchIdx)
                 .whileTrue(SmartTrench.run(drive));
@@ -238,40 +260,33 @@ public class RobotContainer {
         SmartDashboard.putNumber("RobotState/TempoDePartida", DriverStation.getMatchTime());
 
         var speeds = drive.getChassisSpeeds();
-        
+
         double linearSpeedMps = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
         SmartDashboard.putNumber("Drive/Velocidade_Mps", linearSpeedMps);
-        
+
         double angularSpeedDegps = Math.toDegrees(speeds.omegaRadiansPerSecond);
         SmartDashboard.putNumber("Drive/CompensacaoAngular_DegPs", angularSpeedDegps);
-        // ==========================================
-        if (joystick1.getRawButton(OIConstants.kShootidx)) {
+
+        if (joystick1.getRawAxis(3) > 0.5) {
             currentStateString = "ATIRANDO";
-        } 
-        else if (joystick1.getRawButton(OIConstants.kAutoAimIdx)) {
+        } else if (joystick1.getRawButton(OIConstants.kAutoAimIdx)) {
             currentStateString = "AUTO AIM";
-        } 
-        else if (joystick1.getRawButton(OIConstants.kIntakeIdx)) {
+        } else if (joystick1.getRawButton(OIConstants.kIntakeIdx)) {
             currentStateString = "INTAKE";
-        }
-        else if (joystick1.getRawButton(OIConstants.kThroughtTrenchIdx)) {
+        } else if (joystick1.getRawButton(OIConstants.kThroughtTrenchIdx)) {
             currentStateString = "ATRAVESSANDO TRENCH";
-        } 
-        else {
+        } else {
             Pose2d pose = drive.getPose();
             double x = pose.getX();
             double y = pose.getY();
 
             if (x > 5.8 && x < 10.7) {
                 currentStateString = "ZONA NEUTRA";
-            } 
-            else if (x <= 5.8 && y > 6.0) { 
+            } else if (x <= 5.8 && y > 6.0) {
                 currentStateString = "LEFT TRENCH";
-            } 
-            else if (x >= 10.7) {
+            } else if (x >= 10.7) {
                 currentStateString = "ZONA INIMIGA";
-            } 
-            else {
+            } else {
                 currentStateString = "BASE";
             }
         }
@@ -305,7 +320,8 @@ public class RobotContainer {
             if (coralPose.getZ() > 0.0) {
                 double dt = 0.02;
                 coralVelocity = coralVelocity.minus(new Translation3d(0, 0, GRAVITY * dt));
-                coralPose = new Pose3d(coralPose.getTranslation().plus(coralVelocity.times(dt)), coralPose.getRotation());
+                coralPose = new Pose3d(coralPose.getTranslation().plus(coralVelocity.times(dt)),
+                        coralPose.getRotation());
             } else {
                 coralVelocity = new Translation3d();
             }
