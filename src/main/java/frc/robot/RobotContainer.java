@@ -60,7 +60,6 @@ public class RobotContainer {
     private final Vision vision;
     private final Shooter shooter;
     private final Intake intake;
-    private final LEDSubsystem leds;
 
     // SIMULAÇÃO
     private Pose3d coralPose = new Pose3d(1, 1, 0, new Rotation3d());
@@ -83,7 +82,6 @@ public class RobotContainer {
 
     public RobotContainer() {
 
-        // --- INICIALIZAÇÃO DOS SUBSYSTEMS ---
         switch (Constants.currentMode) {
             case REAL:
                 drive = new Drive(
@@ -147,7 +145,7 @@ public class RobotContainer {
                 });
 
         // =================================================================
-        // NAMED COMMANDS (Para usar no PathPlanner)
+        // NAMED COMMANDS
         // =================================================================
 
         NamedCommands.registerCommand("Intake Start",
@@ -192,22 +190,6 @@ public class RobotContainer {
                 .withName("Telemetria e Estado")
                 .schedule();
 
-        leds = new LEDSubsystem(
-                () -> {
-                    var alliance = DriverStation.getAlliance();
-                    Translation2d target = (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red)
-                            ? FieldPoses.kHubRed
-                            : FieldPoses.kHubBlue;
-
-                    return shooter.isAlignedToTarget(drive.getPose(), target);
-                },
-
-                () -> !vision.getVisionMeasurements().isEmpty(),
-                () -> {
-                    var speeds = drive.getChassisSpeeds();
-                    return Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
-                });
-
         configureButtonBindings();
     }
 
@@ -216,7 +198,6 @@ public class RobotContainer {
         new Trigger(() -> joystick1.getRawAxis(3) > 0.5)
                 .whileTrue(shooter.shootCommand());
 
-        // --- MIRA AUTOMÁTICA (MODO TOGGLE CORRIGIDO) ---
         new JoystickButton(joystick1, OIConstants.kAutoAimIdx)
                 .onTrue(Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
 

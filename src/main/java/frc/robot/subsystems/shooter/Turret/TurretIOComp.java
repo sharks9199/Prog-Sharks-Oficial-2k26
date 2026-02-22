@@ -21,16 +21,15 @@ public class TurretIOComp implements TurretIO {
   private final MotionMagicVoltage positionRequest = new MotionMagicVoltage(0).withSlot(0);
   private final VoltageOut voltageRequest = new VoltageOut(0);
 
-  private final DigitalInput max2LimitSwitch = new DigitalInput(1);
-  private final DigitalInput max1LimitSwitch = new DigitalInput(2);
+  private final DigitalInput max2LimitSwitch = new DigitalInput(2);
+  private final DigitalInput max1LimitSwitch = new DigitalInput(1);
 
   public TurretIOComp() {
     talon = new TalonFX(TurretConstants.kTurretMotorID); 
     
     var config = new TalonFXConfiguration();
 
-    // --- 1. CONFIGURAÇÃO GERAL ---
-    config.CurrentLimits.SupplyCurrentLimit = 30.0; 
+    config.CurrentLimits.SupplyCurrentLimit = 40.0; 
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
     config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive; 
@@ -49,7 +48,7 @@ public class TurretIOComp implements TurretIO {
     config.MotionMagic.MotionMagicJerk = 0;
 
     talon.getConfigurator().apply(config);
-    talon.setPosition(0.0);
+    talon.setPosition(Units.degreesToRotations(-90.0));
   }
 
   @Override

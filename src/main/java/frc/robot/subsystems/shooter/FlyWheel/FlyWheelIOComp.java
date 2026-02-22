@@ -38,11 +38,11 @@ public class FlyWheelIOComp implements FlyWheelIO {
     // -----------------------------------------------------------
     FWMotor = new TalonFX(FlyWheelConstants.kShooterFWMotor);
     var config = new TalonFXConfiguration();
-    config.CurrentLimits.SupplyCurrentLimit = 80.0;
+    config.CurrentLimits.SupplyCurrentLimit = 40.0;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
     config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
     config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
-    config.Slot0.kP = 2.0; 
+    config.Slot0.kP = 1.5; 
     config.Slot0.kI = 0.0;
     config.Slot0.kD = 0.0;
     config.Slot0.kV = 0.12; 
@@ -56,8 +56,8 @@ public class FlyWheelIOComp implements FlyWheelIO {
     centConfig.CurrentLimits.SupplyCurrentLimit = 30.0; 
     centConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
     centConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive; 
-    centConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake; 
-    centConfig.Slot0.kP = 0.2;
+    centConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast; 
+    centConfig.Slot0.kP = 0.1;
     centConfig.Slot0.kI = 0.0;
     centConfig.Slot0.kD = 0.0;
     centConfig.Slot0.kV = 0.12;
@@ -68,13 +68,13 @@ public class FlyWheelIOComp implements FlyWheelIO {
     // -----------------------------------------------------------
     feederMotor = new TalonFX(FlyWheelConstants.kFeederFWMotor);
     var feederConfig = new TalonFXConfiguration();
-    feederConfig.CurrentLimits.SupplyCurrentLimit = 30.0; 
+    feederConfig.CurrentLimits.SupplyCurrentLimit = 50.0; 
     feederConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
 
     feederConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive; 
-    feederConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    feederConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
 
-    feederConfig.Slot0.kP = 0.1;
+    feederConfig.Slot0.kP = 0.009;
     feederConfig.Slot0.kI = 0.0;
     feederConfig.Slot0.kD = 0.0;
     feederConfig.Slot0.kV = 0.12;

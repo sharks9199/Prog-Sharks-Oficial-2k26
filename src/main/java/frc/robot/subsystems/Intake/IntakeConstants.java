@@ -13,11 +13,11 @@ public class IntakeConstants {
         public static final double RollerSpeedManual = 0.5; 
 
         public static final double RollerSpeedEject = -0.5; 
-        public static final double CollectPosition = 0.535; 
-        public static final double StowedPosition = 0.250; 
+        public static final double CollectPosition = 0.94; 
+        public static final double StowedPosition = 0.76; 
         
-        public static final double intakeMax = 0.560;
-        public static final double intakeMin = 0.24;
+        public static final double intakeMax = 0.95;
+        public static final double intakeMin = 0.76;
         public static Boolean intakeCollecting = false;
         public static double intakeSetpoint = StowedPosition;
     }
