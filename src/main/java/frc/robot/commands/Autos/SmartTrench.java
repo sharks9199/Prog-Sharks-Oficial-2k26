@@ -1,5 +1,7 @@
 package frc.robot.commands.Autos;
 
+import static edu.wpi.first.units.Units.Degrees;
+
 import java.util.Set;
 
 import com.pathplanner.lib.auto.AutoBuilder;
@@ -13,12 +15,14 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.util.FieldConstants;
+import frc.robot.subsystems.shooter.Pivot.PivotIOComp;
+import frc.robot.subsystems.shooter.Shooter;
 
 public class SmartTrench {
-
+   
     public static Command run(Drive drive) {
         return Commands.defer(() -> {
-
+            
             Pose2d currentPose = drive.getPose();
             double fieldCenterY = 4.05;
 
@@ -31,8 +35,9 @@ public class SmartTrench {
 
             if (selectedPath != null) {
                 Pose2d smartStartPose = selectedPath.getStartingHolonomicPose().orElse(currentPose);
+                double goalVelocity = 0.2;
 
-                double goalVelocity = 0.5;
+            //pivot.runSetpoint(Degrees.of(Shooter.kMinPivotAngle));
 
                 Command pathfind = AutoBuilder.pathfindToPose(
                         smartStartPose,

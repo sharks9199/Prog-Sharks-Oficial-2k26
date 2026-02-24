@@ -19,7 +19,7 @@ public class PivotIOComp implements PivotIO {
   private final MotionMagicVoltage positionRequest = new MotionMagicVoltage(0);
   private final VoltageOut voltageRequest = new VoltageOut(0);
 
-  private final double kStartAngleDegrees = 0.0; 
+  private final double kStartAngleDegrees = 68.89;
 
   public PivotIOComp() {
     talon = new TalonFX(PivotConstants.kPivotMotor);
@@ -28,19 +28,19 @@ public class PivotIOComp implements PivotIO {
 
     config.CurrentLimits.SupplyCurrentLimit = 45.0;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
-    
-    config.MotorOutput.NeutralMode = NeutralModeValue.Brake; 
-    config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive; 
 
-    config.Feedback.SensorToMechanismRatio = 106.5; 
+    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+    config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+
+    config.Feedback.SensorToMechanismRatio = 106.5;
 
     // --- PID ---
-    config.Slot0.kP = 95.0; 
+    config.Slot0.kP = 95.0;
     config.Slot0.kI = 0.0;
     config.Slot0.kD = 0.0;
 
-    config.Slot0.kG = 0.2; 
-    config.Slot0.GravityType = GravityTypeValue.Arm_Cosine; 
+    config.Slot0.kG = 0.2;
+    config.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
 
     // --- MOTION MAGIC ---
     config.MotionMagic.MotionMagicCruiseVelocity = 1.5;
@@ -76,10 +76,10 @@ public class PivotIOComp implements PivotIO {
     config.kP = p;
     config.kI = i;
     config.kD = d;
-    talon.getConfigurator().apply(config); 
+    talon.getConfigurator().apply(config);
   }
 
-    @Override
+  @Override
   public void resetEncoder() {
     talon.setPosition(0);
   }

@@ -12,9 +12,9 @@ public interface FlyWheelIO {
     public double velocityRadsPerSec = 0.0;
     public double appliedVolts = 0.0;
     public double supplyCurrentAmps = 0.0;
-    
+
     // --- O ERRO ESTAVA AQUI: Faltava esta variável ---
-    public double setpointVelocityRadsPerSec = 0.0; 
+    public double setpointVelocityRadsPerSec = 0.0;
 
     // --- Motor Centrífuga ---
     public double centrifugeVelocityRpm = 0.0;
@@ -27,17 +27,30 @@ public interface FlyWheelIO {
     public double feederCurrentAmps = 0.0;
   }
 
-  public default void updateInputs(FlyWheelIOInputs inputs) {}
+  public default void updateInputs(FlyWheelIOInputs inputs) {
+  }
 
-  public default void runVolts(Voltage volts) {}
-  public default void runVelocity(AngularVelocity velocity) {}
-  public default void setPID(double p, double i, double d) {}
+  public default void runVolts(Voltage volts) {
+  }
 
-  public default void runCentrifugeVolts(double volts) {}
-  public default void runCentrifugeVelocity(AngularVelocity velocity) {}
+  public default void runVelocity(AngularVelocity velocity) {
+  }
 
-  public default void runFeederVolts(double volts) {}
-  public default void runFeederVelocity(AngularVelocity velocity) {}
+  public default void setPID(double p, double i, double d) {
+  }
 
-  public default void stop() {}
+  public default void runCentrifugeVolts(double volts) {
+  }
+
+  public default void runCentrifugeVelocity(AngularVelocity velocity) {
+  }
+
+  public default void runFeederVolts(double volts) {
+  }
+
+  public default void runFeederVelocity(AngularVelocity velocity) {
+  }
+
+  public default void stop() {
+  }
 }
