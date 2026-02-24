@@ -1,3 +1,4 @@
+
 package frc.robot;
 
 import org.littletonrobotics.junction.Logger;
@@ -60,8 +61,8 @@ public class RobotContainer {
     private final Vision vision;
     private final Shooter shooter;
     private final Intake intake;
+    private final LEDSubsystem led;
 
-    // SIMULAÇÃO
     private Pose3d coralPose = new Pose3d(1, 1, 0, new Rotation3d());
     private boolean isHoldingPiece = false;
     private Translation3d coralVelocity = new Translation3d();
@@ -69,7 +70,6 @@ public class RobotContainer {
     private final double SHOOT_SPEED = 12.0;
     private final double SHOOT_PITCH = 45.0;
 
-    // CONTROLLER
     private final Joystick joystick1 = new Joystick(OIConstants.kDriverControllerPort);
     private final Joystick joystick2 = new Joystick(OIConstants.kSecondDriverControllerPort);
 
@@ -77,7 +77,7 @@ public class RobotContainer {
 
     private final LoggedDashboardChooser<Command> autoChooser;
 
-    private final PowerDistribution pdh = new PowerDistribution(30, ModuleType.kRev);
+    //private final PowerDistribution pdh = new PowerDistribution(30, ModuleType.kRev);
     private String currentStateString = "INICIANDO";
 
     public RobotContainer() {
@@ -132,9 +132,12 @@ public class RobotContainer {
                 break;
         }
 
-        // =================================================================
-        // CONECTANDO O AUTO AIM
-        // =================================================================
+        led = new LEDSubsystem(
+                () -> shooter.isAutoAimEnabled(),
+                () -> !vision.getVisionMeasurements().isEmpty(),
+                () -> Math.hypot(drive.getChassisSpeeds().vxMetersPerSecond,
+                        drive.getChassisSpeeds().vyMetersPerSecond));
+
         shooter.setupAutoAimReferences(
                 drive::getPose,
                 () -> {
@@ -143,10 +146,6 @@ public class RobotContainer {
                             ? FieldPoses.kHubRed
                             : FieldPoses.kHubBlue;
                 });
-
-        // =================================================================
-        // NAMED COMMANDS
-        // =================================================================
 
         NamedCommands.registerCommand("Intake Start",
                 Commands.runOnce(() -> intake.getToggleIntakeCommand().schedule()));
@@ -164,11 +163,6 @@ public class RobotContainer {
 
         autoChooser = new LoggedDashboardChooser<>("Auto Choices", AutoBuilder.buildAutoChooser());
 
-        // =================================================================
-        // DEFAULT COMMANDS E TELEMETRIA DE BACKGROUND
-        // =================================================================
-
-        // 1. DRIVE
         drive.setDefaultCommand(
                 DriveCommands.joystickDrive(
                         drive,
@@ -177,14 +171,10 @@ public class RobotContainer {
                         () -> -joystick1.getRawAxis(4))
                         .alongWith(Commands.run(() -> updateVisionCorrection())));
 
-        // 2. SHOOTER (Torre Manual)
-        shooter.setDefaultCommand(
-                new TurretManualCmd(shooter, () -> joystick1.getPOV()));
+        shooter.setDefaultCommand(new TurretManualCmd(shooter, () -> joystick1.getPOV()));
 
-        // 3. INTAKE
         intake.setDefaultCommand(intake.getMaintainPositionCommand());
 
-        // 4. TELEMETRIA EM BACKGROUND
         Commands.run(this::updateTelemetryAndState)
                 .ignoringDisable(true)
                 .withName("Telemetria e Estado")
@@ -194,30 +184,16 @@ public class RobotContainer {
     }
 
     private void configureButtonBindings() {
-        // --- GATILHO DE TIRO ---
-        new Trigger(() -> joystick1.getRawAxis(3) > 0.5)
-                .whileTrue(shooter.shootCommand());
-
+        new Trigger(() -> joystick1.getRawAxis(3) > 0.5).whileTrue(shooter.shootCommand());
         new JoystickButton(joystick1, OIConstants.kAutoAimIdx)
                 .onTrue(Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
-
-        // --- INTAKE ---
-        new JoystickButton(joystick1, OIConstants.kIntakeIdx)
-                .onTrue(intake.getToggleIntakeCommand());
-
-        new JoystickButton(joystick1, OIConstants.kIntakeFWIdx)
-                .onTrue(intake.getToggleRollersCommand());
-
-        new JoystickButton(joystick1, OIConstants.kThroughtTrenchIdx)
-                .whileTrue(SmartTrench.run(drive));
-
-        // --- RESET E CONFIGURAÇÃO ---
+        new JoystickButton(joystick1, OIConstants.kIntakeIdx).onTrue(intake.getToggleIntakeCommand());
+        new JoystickButton(joystick1, OIConstants.kIntakeFWIdx).onTrue(intake.getToggleRollersCommand());
+        new JoystickButton(joystick1, OIConstants.kThroughtTrenchIdx).whileTrue(SmartTrench.run(drive));
         new JoystickButton(joystick1, OIConstants.kResetFrontIdx)
                 .onTrue(Commands.runOnce(() -> drive.zeroHeading(), drive));
-
         new JoystickButton(joystick2, OIConstants.kResetTurretEncoderIdx)
                 .onTrue(Commands.runOnce(() -> shooter.resetTurretEncoder(), shooter));
-
         new JoystickButton(joystick2, OIConstants.kResetPivotIdx)
                 .onTrue(Commands.runOnce(() -> shooter.resetPivotEncoder(), shooter));
     }
@@ -229,16 +205,13 @@ public class RobotContainer {
     public void updateVisionCorrection() {
         var measurements = vision.getVisionMeasurements();
         for (var est : measurements) {
-            drive.addVisionMeasurement(
-                    est.pose(),
-                    est.timestamp(),
-                    est.stdDevs());
+            drive.addVisionMeasurement(est.pose(), est.timestamp(), est.stdDevs());
         }
     }
 
     public void updateTelemetryAndState() {
         SmartDashboard.putNumber("Energia/TensaoBateria_V", RobotController.getBatteryVoltage());
-        SmartDashboard.putNumber("Energia/CorrenteTotalPDH_A", pdh.getTotalCurrent());
+       // SmartDashboard.putNumber("Energia/CorrenteTotalPDH_A", pdh.getTotalCurrent());
         SmartDashboard.putNumber("RobotState/TempoDePartida", DriverStation.getMatchTime());
 
         var speeds = drive.getChassisSpeeds();
@@ -251,7 +224,7 @@ public class RobotContainer {
 
         if (joystick1.getRawAxis(3) > 0.5) {
             currentStateString = "ATIRANDO";
-        } else if (shooter.isAutoAimEnabled()) { // Melhorado para ler o status real
+        } else if (shooter.isAutoAimEnabled()) {
             currentStateString = "AUTO AIM";
         } else if (joystick1.getRawButton(OIConstants.kIntakeIdx)) {
             currentStateString = "INTAKE";
@@ -283,8 +256,7 @@ public class RobotContainer {
             isHoldingPiece = false;
             Pose2d robotPose = drive.getPose();
             double turretAngleDeg = shooter.getTurretPosition();
-            Rotation2d totalShotAngle = robotPose.getRotation()
-                    .plus(Rotation2d.fromDegrees(turretAngleDeg));
+            Rotation2d totalShotAngle = robotPose.getRotation().plus(Rotation2d.fromDegrees(turretAngleDeg));
             double pitchRad = Math.toRadians(SHOOT_PITCH);
             double vXY = SHOOT_SPEED * Math.cos(pitchRad);
 

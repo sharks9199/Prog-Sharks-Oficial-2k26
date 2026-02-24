@@ -20,15 +20,15 @@ public class Intake extends SubsystemBase {
     private final IntakeIOInputsAutoLogged inputs = new IntakeIOInputsAutoLogged();
 
     private boolean isIntakeActive = false;
-    private boolean isRollerActive = false; // Controle de estado dos roletes
+    private boolean isRollerActive = false;
 
     private final ProfiledPIDController upController = new ProfiledPIDController(
-        0.7, 0.0, 0.0, 
+        0.3, 0.0, 0.0, 
         new TrapezoidProfile.Constraints(350, 300)
     );
     
     private final ProfiledPIDController downController = new ProfiledPIDController(
-        0.4, 0.0, 0.00001, 
+        0.5, 0.0, 0.00001, 
         new TrapezoidProfile.Constraints(350, 300)
     );
 
@@ -46,7 +46,7 @@ public class Intake extends SubsystemBase {
         SmartDashboard.putNumber("Intake/IntakeSpeed", getSpeed());
         SmartDashboard.putNumber("Intake/Intake Setpoint", getSetpoint());
         SmartDashboard.putBoolean("Intake/Intake Is Active", isIntakeActive);
-        SmartDashboard.putBoolean("Intake/Rollers Are Active", isRollerActive); // Nova telemetria
+        SmartDashboard.putBoolean("Intake/Rollers Are Active", isRollerActive);
 
         SmartDashboard.putNumber("Intake/StowedPosition", intakeConstants.StowedPosition);
         SmartDashboard.putNumber("Intake/CollectPosition", intakeConstants.CollectPosition);
@@ -68,7 +68,6 @@ public class Intake extends SubsystemBase {
         return intakeConstants.intakeSetpoint;
     }
 
-    // --- SETTERS ---
     public void setStopMode() {
         io.setStopMode();
     }
@@ -108,9 +107,6 @@ public class Intake extends SubsystemBase {
         });
     }
 
-    /**
-     * COMANDO TOGGLE (Alternar) Posição do braço do Intake
-     */
     public Command getToggleIntakeCommand() {
         return runOnce(() -> {
             if (isIntakeActive) {
@@ -121,18 +117,14 @@ public class Intake extends SubsystemBase {
         });
     }
 
-    /**
-     * COMANDO TOGGLE DOS ROLETES (Liga/Desliga apenas o flywheel)
-     */
+
     public Command getToggleRollersCommand() {
         return runOnce(() -> {
             if (isRollerActive) {
-                // Se está ligado, desliga
                 setIntake(0);
                 isRollerActive = false;
                 System.out.println("Intake: ROLETES DESLIGADOS");
             } else {
-                // Se está desligado, liga
                 setIntake(intakeConstants.RollerSpeedCollect);
                 isRollerActive = true;
                 System.out.println("Intake: ROLETES LIGADOS");

@@ -1,3 +1,4 @@
+
 package frc.robot.subsystems;
 
 import java.util.Optional;
@@ -17,12 +18,10 @@ public class LEDSubsystem extends SubsystemBase {
     private final AddressableLED m_led;
     private final AddressableLEDBuffer m_buffer;
 
-    // Views (Sub-seções da fita)
     private final AddressableLEDBufferView allianceView;
     private final AddressableLEDBufferView shooterView;
     private final AddressableLEDBufferView boostView;
 
-    // Suppliers (Funções para buscar dados do robô)
     private BooleanSupplier isShooterAligned;
     private BooleanSupplier hasTarget;
     private DoubleSupplier currentSpeed;
@@ -37,9 +36,7 @@ public class LEDSubsystem extends SubsystemBase {
         m_led.setLength(m_buffer.getLength());
 
         allianceView = m_buffer.createView(LEDConstants.kAllianceStart, LEDConstants.kAllianceEnd);
-        
         shooterView = m_buffer.createView(LEDConstants.kShooterStart, LEDConstants.kShooterEnd);
-    
         boostView = m_buffer.createView(LEDConstants.kBoostStart, LEDConstants.kBoostEnd);
 
         m_led.setData(m_buffer);
@@ -57,9 +54,9 @@ public class LEDSubsystem extends SubsystemBase {
 
     private void updateAllianceColor() {
         Optional<Alliance> alliance = DriverStation.getAlliance();
-        
+
         Color color = Color.kBlack;
-        
+
         if (alliance.isPresent()) {
             color = alliance.get() == Alliance.Red ? Color.kFirstRed : Color.kFirstBlue;
         }
@@ -93,7 +90,7 @@ public class LEDSubsystem extends SubsystemBase {
         double speed = Math.abs(currentSpeed.getAsDouble());
         int ledsLit = (int) ((speed / maxSpeed) * boostView.getLength());
         ledsLit = Math.max(0, Math.min(ledsLit, boostView.getLength()));
-        Color boostColor = Color.kPurple; 
+        Color boostColor = Color.kPurple;
         Color baseColor = Color.kBlack;
 
         for (int i = 0; i < boostView.getLength(); i++) {

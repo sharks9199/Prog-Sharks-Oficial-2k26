@@ -3,8 +3,6 @@ package frc.robot.subsystems.shooter;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -38,10 +36,12 @@ public class Shooter extends SubsystemBase {
 
     private double currentTurretTarget = 0.0;
     private double currentFlywheelTargetRpm = 0.0;
+    private double currentFeederTargetRpm = 0.0;
+    private double currentCentrifugeRpm = 60.0;
     private Translation2d lastTargetLocation = null;
 
-    private final double kMinPivotAngle = 50.0;
-    private final double kMaxPivotAngle = 68.89;
+    private double kMinPivotAngle = 50.0;
+    private double kMaxPivotAngle = 68.89;
     private double kPivotEncoderOffset = 35.0;
 
     private double kShootRpm = 4000.0;
@@ -49,39 +49,32 @@ public class Shooter extends SubsystemBase {
     private double kSpitRpm = 1000.0;
     private double kFeederSpitRpm = 2000.0;
 
+    private double kTargetHeightRelative = 3.0;
+    private double kTurretToleranceDeg = 1.0;
+    private double kPivotToleranceDeg = 1.0;
+    private double kFlywheelToleranceRpm = 10.0;
+    private double kMinTurretAngle = -110.0;
+    private double kMaxTurretAngle = 17.0;
+
+    private double kRpmSlope = 303.0;
+    private double kRpmIntercept = 1966.7;
+    private double kMaxSafeRpm = 6000.0;
+    private double kDragCompensation = 2.0;
+    private double kCloseRangeLiftNumerator = 3.0;
+
     private final double kGravity = 9.81;
-    private final double kTargetHeightRelative = 1.8;
-    private final double kTurretToleranceDeg = 1.0;
-    private final double kPivotToleranceDeg = 1.0;
-    private final double kFlywheelToleranceRpm = 50.0;
-    private final double kMinTurretAngle = -110.0;
-    private final double kMaxTurretAngle = 17.0;
+    private final double kWheelRadiusMeters = Units.inchesToMeters(2.0) * 0.70;
+
     private double calculatedAutoAimRpm = 0.0;
-
-    // Regressão Linear
-    private double kRpmSlope = 500.0;
-    private double kRpmIntercept = 2500.0;
-    private final double kMaxSafeRpm = 6000.0;
-    private final double kWheelRadiusMeters = Units.inchesToMeters(0.4);
-
-    // ==========================================
-    // FILTROS (Suavização de ruído da Câmera/Odometria)
-    // ==========================================
-    // Média móvel das últimas 10 leituras (aprox 0.2s) para estabilizar os Krakens
     private final LinearFilter rpmFilter = LinearFilter.movingAverage(10);
 
     private boolean hasCalibratedTurret = false;
     private boolean hasReachedSpeed = false;
     private boolean autoAimEnabled = false;
+    private boolean flywheelWithinTolerance = false;
 
-    // ==========================================
-    // INÍCIO DO BLOCO DE TESTES PARA CALIBRAÇÃO (FÁCIL DE APAGAR)
-    // ==========================================
     private boolean testModeEnabled = false;
     private double testManualRpm = 4000.0;
-    // ==========================================
-    // FIM DO BLOCO DE TESTES
-    // ==========================================
 
     public Shooter(TurretIO turretIO, PivotIO pivotIO, FlyWheelIO flywheelIO) {
         this.turretIO = turretIO;
@@ -89,15 +82,27 @@ public class Shooter extends SubsystemBase {
         this.flywheelIO = flywheelIO;
 
         SmartDashboard.putNumber("Tuning/Shooter/PivotOffset", kPivotEncoderOffset);
+        SmartDashboard.putNumber("Tuning/Shooter/MinPivotAngle", kMinPivotAngle);
+        SmartDashboard.putNumber("Tuning/Shooter/MaxPivotAngle", kMaxPivotAngle);
+
         SmartDashboard.putNumber("Tuning/Shooter/ShootRPM", kShootRpm);
         SmartDashboard.putNumber("Tuning/Shooter/FeederShootRPM", kFeederShootRpm);
+        SmartDashboard.putNumber("Tuning/Shooter/SpitRPM", kSpitRpm);
+        SmartDashboard.putNumber("Tuning/Shooter/FeederSpitRPM", kFeederSpitRpm);
+
+        SmartDashboard.putNumber("Tuning/Shooter/TargetHeightRel", kTargetHeightRelative);
+        SmartDashboard.putNumber("Tuning/Shooter/TurretTolerance", kTurretToleranceDeg);
+        SmartDashboard.putNumber("Tuning/Shooter/PivotTolerance", kPivotToleranceDeg);
+        SmartDashboard.putNumber("Tuning/Shooter/FlywheelTolerance", kFlywheelToleranceRpm);
+        SmartDashboard.putNumber("Tuning/Shooter/MinTurretAngle", kMinTurretAngle);
+        SmartDashboard.putNumber("Tuning/Shooter/MaxTurretAngle", kMaxTurretAngle);
 
         SmartDashboard.putNumber("Tuning/Shooter/AutoAim_Slope", kRpmSlope);
         SmartDashboard.putNumber("Tuning/Shooter/AutoAim_Intercept", kRpmIntercept);
+        SmartDashboard.putNumber("Tuning/Shooter/AutoAim_MaxSafeRpm", kMaxSafeRpm);
+        SmartDashboard.putNumber("Tuning/Shooter/AutoAim_DragComp", kDragCompensation);
+        SmartDashboard.putNumber("Tuning/Shooter/AutoAim_CloseRangeLift", kCloseRangeLiftNumerator);
 
-        // ==========================================
-        // BLOCO DE TESTES NO DASHBOARD
-        // ==========================================
         SmartDashboard.putBoolean("Calibration/TEST_EnableManualRpm", testModeEnabled);
         SmartDashboard.putNumber("Calibration/TEST_ManualRpm", testManualRpm);
         SmartDashboard.putNumber("Calibration/TEST_DistanceToTarget", 0.0);
@@ -114,18 +119,31 @@ public class Shooter extends SubsystemBase {
 
     @Override
     public void periodic() {
+        kPivotEncoderOffset = SmartDashboard.getNumber("Tuning/Shooter/PivotOffset", kPivotEncoderOffset);
+        kMinPivotAngle = SmartDashboard.getNumber("Tuning/Shooter/MinPivotAngle", kMinPivotAngle);
+        kMaxPivotAngle = SmartDashboard.getNumber("Tuning/Shooter/MaxPivotAngle", kMaxPivotAngle);
+
         kShootRpm = SmartDashboard.getNumber("Tuning/Shooter/ShootRPM", kShootRpm);
+        kFeederShootRpm = SmartDashboard.getNumber("Tuning/Shooter/FeederShootRPM", kFeederShootRpm);
+        kSpitRpm = SmartDashboard.getNumber("Tuning/Shooter/SpitRPM", kSpitRpm);
+        kFeederSpitRpm = SmartDashboard.getNumber("Tuning/Shooter/FeederSpitRPM", kFeederSpitRpm);
+
+        kTargetHeightRelative = SmartDashboard.getNumber("Tuning/Shooter/TargetHeightRel", kTargetHeightRelative);
+        kTurretToleranceDeg = SmartDashboard.getNumber("Tuning/Shooter/TurretTolerance", kTurretToleranceDeg);
+        kPivotToleranceDeg = SmartDashboard.getNumber("Tuning/Shooter/PivotTolerance", kPivotToleranceDeg);
+        kFlywheelToleranceRpm = SmartDashboard.getNumber("Tuning/Shooter/FlywheelTolerance", kFlywheelToleranceRpm);
+        kMinTurretAngle = SmartDashboard.getNumber("Tuning/Shooter/MinTurretAngle", kMinTurretAngle);
+        kMaxTurretAngle = SmartDashboard.getNumber("Tuning/Shooter/MaxTurretAngle", kMaxTurretAngle);
+
         kRpmSlope = SmartDashboard.getNumber("Tuning/Shooter/AutoAim_Slope", kRpmSlope);
         kRpmIntercept = SmartDashboard.getNumber("Tuning/Shooter/AutoAim_Intercept", kRpmIntercept);
+        kMaxSafeRpm = SmartDashboard.getNumber("Tuning/Shooter/AutoAim_MaxSafeRpm", kMaxSafeRpm);
+        kDragCompensation = SmartDashboard.getNumber("Tuning/Shooter/AutoAim_DragComp", kDragCompensation);
+        kCloseRangeLiftNumerator = SmartDashboard.getNumber("Tuning/Shooter/AutoAim_CloseRangeLift",
+                kCloseRangeLiftNumerator);
 
-        // ==========================================
-        // INÍCIO DA ATUALIZAÇÃO DO BLOCO DE TESTES
-        // ==========================================
         testModeEnabled = SmartDashboard.getBoolean("Calibration/TEST_EnableManualRpm", testModeEnabled);
         testManualRpm = SmartDashboard.getNumber("Calibration/TEST_ManualRpm", testManualRpm);
-        // ==========================================
-        // FIM DA ATUALIZAÇÃO DO BLOCO DE TESTES
-        // ==========================================
 
         turretIO.updateInputs(turretInputs);
         pivotIO.updateInputs(pivotInputs);
@@ -145,9 +163,6 @@ public class Shooter extends SubsystemBase {
             hasCalibratedTurret = true;
         }
 
-        // ==========================================
-        // LÓGICA DO AUTO AIM COM FILTRO
-        // ==========================================
         if (autoAimEnabled && robotPoseSupplier != null && targetSupplier != null) {
             Pose2d robotPose = robotPoseSupplier.get();
             Translation2d targetLocation = targetSupplier.get();
@@ -155,26 +170,26 @@ public class Shooter extends SubsystemBase {
             double dist = getDistanceToTarget(robotPose, targetLocation);
             SmartDashboard.putNumber("Calibration/TEST_DistanceToTarget", dist);
 
-            // 1. Calcula o RPM bruto com base na distância
-            double rawTargetRpm = (kRpmSlope * dist) + kRpmIntercept;
-            rawTargetRpm = MathUtil.clamp(rawTargetRpm, 0, kMaxSafeRpm);
+            double rawTargetRpm;
+            if (testModeEnabled) {
+                rawTargetRpm = testManualRpm;
+            } else {
+                rawTargetRpm = (kRpmSlope * dist) + kRpmIntercept;
+            }
 
-            // 2. Aplica o filtro para ignorar micro-vibrações da odometria
+            rawTargetRpm = MathUtil.clamp(rawTargetRpm, 0, kMaxSafeRpm);
             double targetRpm = rpmFilter.calculate(rawTargetRpm);
 
-            // 3. Usa o RPM filtrado para o restante dos cálculos
             double dynamicMps = convertRpmToMps(targetRpm);
             double targetPivot = calculatePivotAngleNumeric(dist, dynamicMps);
             double targetTurret = calculateTurretAngle(robotPose, targetLocation);
 
             setTurretSetpoint(targetTurret);
             setPivotPosition(targetPivot);
+
             calculatedAutoAimRpm = targetRpm;
         }
 
-        // ==========================================
-        // SEGURANÇA DE FIM DE CURSO
-        // ==========================================
         boolean limitHit = turretInputs.max1LimitHit || turretInputs.max2LimitHit;
         SmartDashboard.putBoolean("Turret/LimitHitActive", limitHit);
 
@@ -193,11 +208,9 @@ public class Shooter extends SubsystemBase {
         currentTurretTarget = MathUtil.clamp(currentTurretTarget, kMinTurretAngle, kMaxTurretAngle);
         turretIO.runSetpoint(Degrees.of(currentTurretTarget));
 
-        // Controle do Flywheel
-        if (currentFlywheelTargetRpm < 10)
-            flywheelIO.stop();
-        else
-            flywheelIO.runVelocity(RPM.of(currentFlywheelTargetRpm));
+        flywheelIO.runVelocity(RPM.of(currentFlywheelTargetRpm));
+        flywheelIO.runCentrifugeVelocity(RPM.of(currentFeederTargetRpm));
+        flywheelIO.runFeederVelocity(RPM.of(currentFeederTargetRpm));
     }
 
     public void setFlywheelVelocity(double rpm) {
@@ -205,8 +218,7 @@ public class Shooter extends SubsystemBase {
     }
 
     public void runFeeder(double rpm) {
-        flywheelIO.runCentrifugeVelocity(RPM.of(rpm));
-        flywheelIO.runFeederVelocity(RPM.of(rpm));
+        this.currentFeederTargetRpm = rpm;
     }
 
     public double getFlywheelRpm() {
@@ -214,39 +226,54 @@ public class Shooter extends SubsystemBase {
     }
 
     public boolean isFlywheelAtSpeed() {
-        return currentFlywheelTargetRpm > 100
-                && Math.abs(getFlywheelRpm() - currentFlywheelTargetRpm) <= kFlywheelToleranceRpm;
+        if (currentFlywheelTargetRpm < 500) {
+            flywheelWithinTolerance = false;
+            return false;
+        }
+
+        double error = Math.abs(getFlywheelRpm() - currentFlywheelTargetRpm);
+
+        if (!flywheelWithinTolerance) {
+            if (error <= kFlywheelToleranceRpm) {
+                flywheelWithinTolerance = true;
+            }
+        } else {
+            if (error > kFlywheelToleranceRpm * 4.0) {
+                flywheelWithinTolerance = false;
+            }
+        }
+
+        return flywheelWithinTolerance;
     }
 
     private Command runShootSequence(double manualFlywheelTargetRpm, double feederTargetRpm) {
         return this.run(() -> {
-            // 1. Define o RPM base (se autoAim tá ligado, usa o calculado filtrado, senão
-            // usa o manual)
             double activeRpm = autoAimEnabled ? calculatedAutoAimRpm : manualFlywheelTargetRpm;
-
-            // 2. MODO DE TESTE ABSOLUTO
-            if (testModeEnabled) {
-                activeRpm = testManualRpm;
-            }
 
             setFlywheelVelocity(activeRpm);
 
-            if (isFlywheelAtSpeed())
+            if (!hasReachedSpeed && isFlywheelAtSpeed()) {
                 hasReachedSpeed = true;
+            }
 
-            if (hasReachedSpeed)
+            if (hasReachedSpeed) {
                 runFeeder(feederTargetRpm);
-            else
+            } else {
                 runFeeder(0.0);
+            }
 
-        }).beforeStarting(() -> hasReachedSpeed = false).finallyDo(() -> {
+        }).beforeStarting(() -> {
             hasReachedSpeed = false;
+            flywheelWithinTolerance = false;
+        }).finallyDo(() -> {
+            hasReachedSpeed = false;
+            flywheelWithinTolerance = false;
             stop();
         });
     }
 
     public Command shootCommand() {
-        return runShootSequence(kShootRpm, kFeederShootRpm);
+        return runShootSequence(calculatedAutoAimRpm, kFeederShootRpm);
     }
 
     public Command spitCommand() {
@@ -268,9 +295,19 @@ public class Shooter extends SubsystemBase {
         double v2 = Math.pow(velocityMPS, 2);
         double discriminant = Math.pow(v2, 2)
                 - kGravity * (kGravity * Math.pow(distanceMeters, 2) + 2 * kTargetHeightRelative * v2);
-        if (discriminant < 0)
+
+        if (discriminant < 0) {
             return kMinPivotAngle;
-        return Math.toDegrees(Math.atan((v2 - Math.sqrt(discriminant)) / (kGravity * distanceMeters)));
+        }
+
+        double idealAngle = Math.toDegrees(Math.atan((v2 - Math.sqrt(discriminant)) / (kGravity * distanceMeters)));
+
+        double dragCompensation = kDragCompensation;
+        double closeRangeLift = kCloseRangeLiftNumerator / distanceMeters;
+
+        double finalAngle = idealAngle;
+
+        return finalAngle;
     }
 
     public void setTurretSetpoint(double degrees) {
@@ -296,8 +333,7 @@ public class Shooter extends SubsystemBase {
 
     public void stop() {
         currentFlywheelTargetRpm = 0.0;
-        flywheelIO.stop();
-        runFeeder(0);
+        currentFeederTargetRpm = 0.0;
     }
 
     public void resetTurretEncoder() {

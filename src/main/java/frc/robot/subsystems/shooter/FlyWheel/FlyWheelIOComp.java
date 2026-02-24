@@ -53,11 +53,11 @@ public class FlyWheelIOComp implements FlyWheelIO {
     // -----------------------------------------------------------
     centrifugeMotor = new TalonFX(FlyWheelConstants.kCentrifugeMotor); 
     var centConfig = new TalonFXConfiguration();
-    centConfig.CurrentLimits.SupplyCurrentLimit = 30.0; 
+    centConfig.CurrentLimits.SupplyCurrentLimit = 40.0; 
     centConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
     centConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive; 
     centConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast; 
-    centConfig.Slot0.kP = 0.1;
+    centConfig.Slot0.kP = 0.05;
     centConfig.Slot0.kI = 0.0;
     centConfig.Slot0.kD = 0.0;
     centConfig.Slot0.kV = 0.12;
@@ -74,7 +74,7 @@ public class FlyWheelIOComp implements FlyWheelIO {
     feederConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive; 
     feederConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
 
-    feederConfig.Slot0.kP = 0.009;
+    feederConfig.Slot0.kP = 0.05;
     feederConfig.Slot0.kI = 0.0;
     feederConfig.Slot0.kD = 0.0;
     feederConfig.Slot0.kV = 0.12;
@@ -91,12 +91,12 @@ public class FlyWheelIOComp implements FlyWheelIO {
     // Centrifuga
     inputs.centrifugeAppliedVolts = centrifugeMotor.getMotorVoltage().getValueAsDouble();
     inputs.centrifugeCurrentAmps = centrifugeMotor.getSupplyCurrent().getValueAsDouble();
-    inputs.centrifugeVelocityRpm = centrifugeMotor.getVelocity().getValueAsDouble() * 60;
+    inputs.centrifugeVelocityRpm = centrifugeMotor.getVelocity().getValueAsDouble();
 
     // Feeder
     inputs.feederAppliedVolts = feederMotor.getMotorVoltage().getValueAsDouble();
     inputs.feederCurrentAmps = feederMotor.getSupplyCurrent().getValueAsDouble();
-    inputs.feederVelocityRpm = feederMotor.getVelocity().getValueAsDouble() * 60;
+    inputs.feederVelocityRpm = feederMotor.getVelocity().getValueAsDouble();
   }
 
   @Override
