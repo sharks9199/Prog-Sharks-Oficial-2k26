@@ -16,6 +16,8 @@ public class IntakeConstants {
         public static final double CollectPosition = 0.95; 
         public static final double StowedPosition = 0.74; 
         
+        public static final double IntakeShootingPosition = 0.64;
+
         public static final double intakeMax = 0.95;
         public static final double intakeMin = 0.69;
         public static Boolean intakeCollecting = false;

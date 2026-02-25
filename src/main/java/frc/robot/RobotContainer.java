@@ -1,4 +1,3 @@
-
 package frc.robot;
 
 import org.littletonrobotics.junction.Logger;
@@ -77,7 +76,8 @@ public class RobotContainer {
 
     private final LoggedDashboardChooser<Command> autoChooser;
 
-    //private final PowerDistribution pdh = new PowerDistribution(30, ModuleType.kRev);
+    // private final PowerDistribution pdh = new PowerDistribution(30,
+    // ModuleType.kRev);
     private String currentStateString = "INICIANDO";
 
     public RobotContainer() {
@@ -95,7 +95,7 @@ public class RobotContainer {
                         new VisionIOLimelight("limelight-front", drive::getRotation),
                         new VisionIOLimelight("limelight-back", drive::getRotation));
 
-                shooter = new Shooter(new TurretIOComp(), new PivotIOComp(), new FlyWheelIOComp());
+                shooter = new Shooter(new TurretIOComp(), new PivotIOComp(), new FlyWheelIOComp());//, new IntakeIOComp());
                 intake = new Intake(new IntakeIOComp());
                 break;
 
@@ -110,7 +110,7 @@ public class RobotContainer {
 
                 vision = new Vision(new VisionIO() {
                 });
-                shooter = new Shooter(new TurretIOSim(), new PivotIOSim(), new FlyWheelIOSim());
+                shooter = new Shooter(new TurretIOSim(), new PivotIOSim(), new FlyWheelIOSim());//, new IntakeIOSim());
                 intake = new Intake(new IntakeIOSim());
                 break;
 
@@ -126,7 +126,8 @@ public class RobotContainer {
                 shooter = new Shooter(new TurretIO() {
                 }, new PivotIO() {
                 }, new FlyWheelIO() {
-                });
+                });/* , new IntakeIO(){
+                });*/
                 intake = new Intake(new IntakeIO() {
                 });
                 break;
@@ -151,8 +152,8 @@ public class RobotContainer {
                 Commands.runOnce(() -> intake.getToggleIntakeCommand().schedule()));
         NamedCommands.registerCommand("Intake Stop", Commands.runOnce(() -> intake.stop(), intake));
 
-        NamedCommands.registerCommand("Shoot", shooter.shootCommand());
-        NamedCommands.registerCommand("Spit", shooter.spitCommand());
+        NamedCommands.registerCommand("Shoot", shooter.shootCommand(intake));
+        NamedCommands.registerCommand("Spit", shooter.spitCommand(intake));
         NamedCommands.registerCommand("Stop Shooter", Commands.runOnce(() -> shooter.stop(), shooter));
 
         NamedCommands.registerCommand("SpinUp Flywheel",
@@ -163,13 +164,26 @@ public class RobotContainer {
 
         autoChooser = new LoggedDashboardChooser<>("Auto Choices", AutoBuilder.buildAutoChooser());
 
+        // --- INÍCIO DA ALTERAÇÃO AQUI ---
         drive.setDefaultCommand(
                 DriveCommands.joystickDrive(
                         drive,
-                        () -> -joystick1.getY(),
-                        () -> -joystick1.getX(),
-                        () -> -joystick1.getRawAxis(4))
+                        () -> {
+                            // Verifica se é aliança vermelha para o eixo Y (Frente/Trás)
+                            var alliance = DriverStation.getAlliance();
+                            boolean isRed = alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
+                            return isRed ? joystick1.getY() : -joystick1.getY();
+                        },
+                        () -> {
+                            // Verifica se é aliança vermelha para o eixo X (Esquerda/Direita)
+                            var alliance = DriverStation.getAlliance();
+                            boolean isRed = alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
+                            return isRed ? joystick1.getX() : -joystick1.getX();
+                        },
+                        () -> -joystick1.getRawAxis(4) // Rotação se mantém igual
+                )
                         .alongWith(Commands.run(() -> updateVisionCorrection())));
+        // --- FIM DA ALTERAÇÃO ---
 
         shooter.setDefaultCommand(new TurretManualCmd(shooter, () -> joystick1.getPOV()));
 
@@ -184,7 +198,7 @@ public class RobotContainer {
     }
 
     private void configureButtonBindings() {
-        new Trigger(() -> joystick1.getRawAxis(3) > 0.5).whileTrue(shooter.shootCommand());
+        new Trigger(() -> joystick1.getRawAxis(3) > 0.5).whileTrue(shooter.shootCommand(intake));
         new JoystickButton(joystick1, OIConstants.kAutoAimIdx)
                 .onTrue(Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
         new JoystickButton(joystick1, OIConstants.kIntakeIdx).onTrue(intake.getToggleIntakeCommand());
@@ -211,7 +225,8 @@ public class RobotContainer {
 
     public void updateTelemetryAndState() {
         SmartDashboard.putNumber("Energia/TensaoBateria_V", RobotController.getBatteryVoltage());
-       // SmartDashboard.putNumber("Energia/CorrenteTotalPDH_A", pdh.getTotalCurrent());
+        // SmartDashboard.putNumber("Energia/CorrenteTotalPDH_A",
+        // pdh.getTotalCurrent());
         SmartDashboard.putNumber("RobotState/TempoDePartida", DriverStation.getMatchTime());
 
         var speeds = drive.getChassisSpeeds();

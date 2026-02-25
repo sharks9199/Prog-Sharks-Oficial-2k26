@@ -1,7 +1,5 @@
 package frc.robot.commands.Autos;
 
-import static edu.wpi.first.units.Units.Degrees;
-
 import java.util.Set;
 
 import com.pathplanner.lib.auto.AutoBuilder;
@@ -15,11 +13,9 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.util.FieldConstants;
-import frc.robot.subsystems.shooter.Pivot.PivotIOComp;
-import frc.robot.subsystems.shooter.Shooter;
 
 public class SmartTrench {
-   
+    
     public static Command run(Drive drive) {
         return Commands.defer(() -> {
             
@@ -28,26 +24,17 @@ public class SmartTrench {
 
             boolean isFacingForward = Math.cos(currentPose.getRotation().getRadians()) > 0;
             boolean useLeftTrenchLogic = calculateIsLeft(currentPose.getY(), fieldCenterY);
+            
             PathPlannerPath selectedPath = FieldConstants.FieldPoses.getAutoTrenchPath(
                     currentPose,
                     useLeftTrenchLogic,
                     isFacingForward);
 
             if (selectedPath != null) {
-                Pose2d smartStartPose = selectedPath.getStartingHolonomicPose().orElse(currentPose);
-                double goalVelocity = 0.2;
-
-            //pivot.runSetpoint(Degrees.of(Shooter.kMinPivotAngle));
-
-                Command pathfind = AutoBuilder.pathfindToPose(
-                        smartStartPose,
-                        AutoConstants.constraints,
-                        goalVelocity);
-
-                Command follow = AutoBuilder.followPath(selectedPath);
-
-                return pathfind.andThen(follow);
-
+                return AutoBuilder.pathfindThenFollowPath(
+                        selectedPath,
+                        AutoConstants.constraints
+                );
             } else {
                 return Commands.none();
             }

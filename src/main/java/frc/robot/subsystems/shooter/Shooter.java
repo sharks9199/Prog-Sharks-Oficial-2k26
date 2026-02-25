@@ -4,6 +4,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -21,6 +22,10 @@ import frc.robot.subsystems.shooter.FlyWheel.FlyWheelIO;
 import frc.robot.subsystems.shooter.FlyWheel.FlyWheelIOInputsAutoLogged;
 import frc.robot.subsystems.shooter.Pivot.PivotIO;
 import frc.robot.subsystems.shooter.Pivot.PivotIOInputsAutoLogged;
+import frc.robot.subsystems.intake.Intake;
+import frc.robot.subsystems.intake.IntakeIO;
+import frc.robot.subsystems.intake.IntakeIOInputsAutoLogged;
+import edu.wpi.first.wpilibj.Timer;
 
 public class Shooter extends SubsystemBase {
 
@@ -30,13 +35,15 @@ public class Shooter extends SubsystemBase {
     private final PivotIOInputsAutoLogged pivotInputs = new PivotIOInputsAutoLogged();
     private final FlyWheelIO flywheelIO;
     private final FlyWheelIOInputsAutoLogged flywheelInputs = new FlyWheelIOInputsAutoLogged();
+    //private final IntakeIO intakeIO;
+    //private final IntakeIOInputsAutoLogged intakeInputs = new IntakeIOInputsAutoLogged();
 
     private Supplier<Pose2d> robotPoseSupplier;
     private Supplier<Translation2d> targetSupplier;
 
     private double currentTurretTarget = 0.0;
     private double currentPivotTarget = 68.89;
-    private double kPivotOffset = 22.0;
+    private double kPivotOffset = 27.0;
 
     private double currentFlywheelTargetRpm = 0.0;
     private double currentFeederTargetRpm = 0.0;
@@ -54,7 +61,7 @@ public class Shooter extends SubsystemBase {
     private double kFeederSpitRpm = 2000.0;
     private double kCentrifugeSpitRpm = 60.0;
 
-    private double kTargetHeightRelative = 1.8;
+    private double kTargetHeightRelative = 2.1;
     private double kTurretToleranceDeg = 1.0;
     private double kPivotToleranceDeg = 1.0;
 
@@ -63,8 +70,8 @@ public class Shooter extends SubsystemBase {
     private double kMinTurretAngle = -110.0;
     private double kMaxTurretAngle = 17.0;
 
-    private double kRpmSlope = 300.0;
-    private double kRpmIntercept = 1966.67;
+    private double kRpmSlope = 255.0;
+    private double kRpmIntercept = 2060.00;
     private double kMaxSafeRpm = 6000.0;
 
     private final double kGravity = 9.81;
@@ -79,10 +86,14 @@ public class Shooter extends SubsystemBase {
     private boolean testModeEnabled = false;
     private double testManualRpm = 4000.0;
 
-    public Shooter(TurretIO turretIO, PivotIO pivotIO, FlyWheelIO flywheelIO) {
+    private final Timer intakeAgitatorTimer = new Timer();
+    private boolean isIntakeAgitatorDown = false;
+
+    public Shooter(TurretIO turretIO, PivotIO pivotIO, FlyWheelIO flywheelIO){//, IntakeIO intakeIO) {
         this.turretIO = turretIO;
         this.pivotIO = pivotIO;
         this.flywheelIO = flywheelIO;
+        //this.intakeIO = intakeIO;
 
         SmartDashboard.putNumber("Tuning/Shooter/MinPivotAngle", kMinPivotAngle);
     }
@@ -101,15 +112,17 @@ public class Shooter extends SubsystemBase {
 
     @Override
     public void periodic() {
-        //kMinPivotAngle = SmartDashboard.getNumber("Tuning/Shooter/MinPivotAngle", kMinPivotAngle);
+        // kMinPivotAngle = SmartDashboard.getNumber("Tuning/Shooter/MinPivotAngle",
+        // kMinPivotAngle);
         turretIO.updateInputs(turretInputs);
         pivotIO.updateInputs(pivotInputs);
         flywheelIO.updateInputs(flywheelInputs);
+        //intakeIO.updateInputs(intakeInputs);
 
         Logger.processInputs("Shooter/Turret", turretInputs);
         Logger.processInputs("Shooter/Pivot", pivotInputs);
         Logger.processInputs("Shooter/Flywheel", flywheelInputs);
-
+        //Logger.processInputs("Shooter/Intake", intakeInputs);
         SmartDashboard.putNumber("Turret/CurrentAngle", getTurretPosition());
         SmartDashboard.putNumber("Pivot/CurrentAngle", getPivotPosition());
 
@@ -124,7 +137,7 @@ public class Shooter extends SubsystemBase {
 
             rawTargetRpm = MathUtil.clamp(rawTargetRpm, 0, kMaxSafeRpm);
             double targetRpm = rawTargetRpm;
-            //System.out.println("Target RPM: " + targetRpm);
+            // System.out.println("Target RPM: " + targetRpm);
 
             double dynamicMps = convertRpmToMps(targetRpm);
             double targetPivot = calculatePivotAngleNumeric(dist, dynamicMps);
@@ -132,7 +145,7 @@ public class Shooter extends SubsystemBase {
 
             setTurretSetpoint(targetTurret);
             setPivotPosition(targetPivot);
-            //System.out.println("Target Pivot Angle: " + targetPivot);
+            // System.out.println("Target Pivot Angle: " + targetPivot);
 
             calculatedAutoAimRpm = targetRpm;
         }
@@ -196,7 +209,7 @@ public class Shooter extends SubsystemBase {
     }
 
     private Command runShootSequence(double manualFlywheelTargetRpm, double feederTargetRpm,
-            double centrifugeTargetRpm) {
+            double centrifugeTargetRpm){//, Intake intake) {
         return this.run(() -> {
             double activeRpm = autoAimEnabled ? calculatedAutoAimRpm : manualFlywheelTargetRpm;
             setFlywheelVelocity(activeRpm);
@@ -211,22 +224,42 @@ public class Shooter extends SubsystemBase {
                 runFeeder(0.0);
                 runCentrifuge(0.0);
             }
+
+           /*  if (intake != null && intakeAgitatorTimer.hasElapsed(3.0)) {
+                if (isIntakeAgitatorDown) {
+                    intake.changeSetpoint(
+                            frc.robot.subsystems.intake.IntakeConstants.intakeConstants.IntakeShootingPosition);
+                } else {
+                    intake.changeSetpoint(frc.robot.subsystems.intake.IntakeConstants.intakeConstants.CollectPosition);
+                }
+                isIntakeAgitatorDown = !isIntakeAgitatorDown;
+                intakeAgitatorTimer.restart();
+            } */
+
         }).beforeStarting(() -> {
             hasReachedSpeed = false;
             flywheelWithinTolerance = false;
+
+            //intakeAgitatorTimer.restart();
+            //isIntakeAgitatorDown = false;
         }).finallyDo(() -> {
             hasReachedSpeed = false;
             flywheelWithinTolerance = false;
             stop();
+
+           /* intakeAgitatorTimer.stop();
+            if (intake != null) {
+                intake.changeSetpoint(frc.robot.subsystems.intake.IntakeConstants.intakeConstants.CollectPosition);
+            }*/
         });
     }
 
-    public Command shootCommand() {
-        return runShootSequence(calculatedAutoAimRpm, kFeederShootRpm, kCentrifugeShootRpm);
+    public Command shootCommand(Intake intake) {
+        return runShootSequence(calculatedAutoAimRpm, kFeederShootRpm, kCentrifugeShootRpm);//, intake);
     }
 
-    public Command spitCommand() {
-        return runShootSequence(kSpitRpm, kFeederSpitRpm, kCentrifugeSpitRpm);
+    public Command spitCommand(Intake intake) {
+        return runShootSequence(kSpitRpm, kFeederSpitRpm, kCentrifugeSpitRpm);//, intake);
     }
 
     public double getDistanceToTarget(Pose2d robotPose, Translation2d targetLocation) {

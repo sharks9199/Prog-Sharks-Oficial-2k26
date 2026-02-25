@@ -23,8 +23,8 @@ public class Intake extends SubsystemBase {
     private boolean isRollerActive = false;
 
     private final ProfiledPIDController upController = new ProfiledPIDController(
-        0.7, 0.0, 0.00001, 
-        new TrapezoidProfile.Constraints(500, 400)
+        0.8, 0.0, 0.00001, 
+        new TrapezoidProfile.Constraints(500, 500)
     );
     
     private final ProfiledPIDController downController = new ProfiledPIDController(
