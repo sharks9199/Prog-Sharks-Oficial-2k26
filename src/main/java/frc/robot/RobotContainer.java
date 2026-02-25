@@ -156,7 +156,7 @@ public class RobotContainer {
         NamedCommands.registerCommand("Stop Shooter", Commands.runOnce(() -> shooter.stop(), shooter));
 
         NamedCommands.registerCommand("SpinUp Flywheel",
-                Commands.runOnce(() -> shooter.setFlywheelVelocity(3500.0), shooter));
+                Commands.runOnce(() -> shooter.setFlywheelVelocity(4500.0), shooter));
 
         NamedCommands.registerCommand("Toggle Auto Aim", Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
         NamedCommands.registerCommand("Reset Turret", Commands.runOnce(() -> shooter.setTurretSetpoint(0.0), shooter));

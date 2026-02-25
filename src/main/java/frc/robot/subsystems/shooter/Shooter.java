@@ -36,6 +36,7 @@ public class Shooter extends SubsystemBase {
 
     private double currentTurretTarget = 0.0;
     private double currentPivotTarget = 68.89;
+    private double kPivotOffset = 22.0;
 
     private double currentFlywheelTargetRpm = 0.0;
     private double currentFeederTargetRpm = 0.0;
@@ -45,15 +46,15 @@ public class Shooter extends SubsystemBase {
     public static double kMinPivotAngle = 55.0;
     private double kMaxPivotAngle = 68.89;
 
-    private double kShootRpm = 4000.0;
-    private double kFeederShootRpm = 4000.0;
+    private double kShootRpm = 6000.0;
+    private double kFeederShootRpm = 5000.0;
     private double kCentrifugeShootRpm = 4500.0;
 
     private double kSpitRpm = 1000.0;
     private double kFeederSpitRpm = 2000.0;
     private double kCentrifugeSpitRpm = 60.0;
 
-    private double kTargetHeightRelative = 2.0;
+    private double kTargetHeightRelative = 1.8;
     private double kTurretToleranceDeg = 1.0;
     private double kPivotToleranceDeg = 1.0;
 
@@ -62,8 +63,8 @@ public class Shooter extends SubsystemBase {
     private double kMinTurretAngle = -110.0;
     private double kMaxTurretAngle = 17.0;
 
-    private double kRpmSlope = 303.0;
-    private double kRpmIntercept = 1966.7;
+    private double kRpmSlope = 300.0;
+    private double kRpmIntercept = 1966.67;
     private double kMaxSafeRpm = 6000.0;
 
     private final double kGravity = 9.81;
@@ -100,7 +101,7 @@ public class Shooter extends SubsystemBase {
 
     @Override
     public void periodic() {
-        kMinPivotAngle = SmartDashboard.getNumber("Tuning/Shooter/MinPivotAngle", kMinPivotAngle);
+        //kMinPivotAngle = SmartDashboard.getNumber("Tuning/Shooter/MinPivotAngle", kMinPivotAngle);
         turretIO.updateInputs(turretInputs);
         pivotIO.updateInputs(pivotInputs);
         flywheelIO.updateInputs(flywheelInputs);
@@ -123,6 +124,7 @@ public class Shooter extends SubsystemBase {
 
             rawTargetRpm = MathUtil.clamp(rawTargetRpm, 0, kMaxSafeRpm);
             double targetRpm = rawTargetRpm;
+            //System.out.println("Target RPM: " + targetRpm);
 
             double dynamicMps = convertRpmToMps(targetRpm);
             double targetPivot = calculatePivotAngleNumeric(dist, dynamicMps);
@@ -130,6 +132,7 @@ public class Shooter extends SubsystemBase {
 
             setTurretSetpoint(targetTurret);
             setPivotPosition(targetPivot);
+            //System.out.println("Target Pivot Angle: " + targetPivot);
 
             calculatedAutoAimRpm = targetRpm;
         }
@@ -139,6 +142,7 @@ public class Shooter extends SubsystemBase {
 
         currentPivotTarget = MathUtil.clamp(currentPivotTarget, kMinPivotAngle, kMaxPivotAngle);
         pivotIO.runSetpoint(Degrees.of(currentPivotTarget));
+        System.out.println("Pivot Target: " + currentPivotTarget);
         // ----------------------------------------
 
         if (currentFlywheelTargetRpm < 10 && currentFeederTargetRpm < 10 && currentCentrifugeTargetRpm < 10) {
@@ -261,7 +265,7 @@ public class Shooter extends SubsystemBase {
 
     public void setPivotPosition(double degreesReal) {
         System.out.println(degreesReal);
-        this.currentPivotTarget = degreesReal;
+        this.currentPivotTarget = degreesReal + kPivotOffset;
     }
 
     public double getPivotPosition() {

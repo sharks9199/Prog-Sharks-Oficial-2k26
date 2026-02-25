@@ -23,7 +23,7 @@ public class Intake extends SubsystemBase {
     private boolean isRollerActive = false;
 
     private final ProfiledPIDController upController = new ProfiledPIDController(
-        0.6, 0.0, 0.0, 
+        0.7, 0.0, 0.00001, 
         new TrapezoidProfile.Constraints(500, 400)
     );
     
@@ -134,7 +134,7 @@ public class Intake extends SubsystemBase {
 
     private void deploy() {
         isIntakeActive = true;
-        isRollerActive = true; // Sincroniza o estado do rolete
+        isRollerActive = true;
         intakeConstants.intakeCollecting = true;
         changeSetpoint(intakeConstants.CollectPosition);
 
@@ -147,36 +147,30 @@ public class Intake extends SubsystemBase {
 
     private void retract() {
         isIntakeActive = false;
-        isRollerActive = false; // Sincroniza o estado do rolete
+        isRollerActive = false;
         intakeConstants.intakeCollecting = false;
         
         changeSetpoint(intakeConstants.StowedPosition); 
         
-        // 2. Reseta o controlador
         upController.reset(getPosition());
 
-        // 3. Desliga as rodas
         setIntake(0);
         
         System.out.println("Intake: RETRACTED (Stowed)");
     }
 
-    // Comando Manual (Joystick)
     public Command getJoystickCommand(Supplier<Integer> pov, Supplier<Boolean> inBtn, Supplier<Boolean> outBtn) {
         return run(() -> {
             int povValue = pov.get();
-            // Ajuste manual fino do setpoint
             if (povValue == OIConstants.kRaiseIntakeButtonIdx) {
-                changeSetpoint(getSetpoint() - 0.005); // Pequeno ajuste pra cima
+                changeSetpoint(getSetpoint() - 0.005);
             } else if (povValue == OIConstants.kLowerIntakeButtonIdx) {
-                changeSetpoint(getSetpoint() + 0.005); // Pequeno ajuste pra baixo
+                changeSetpoint(getSetpoint() + 0.005); 
             }
 
-            // Trava de segurança do Setpoint
             double clampedSetpoint = Math.max(intakeConstants.intakeMin, Math.min(getSetpoint(), intakeConstants.intakeMax));
             if(clampedSetpoint != getSetpoint()) changeSetpoint(clampedSetpoint);
 
-            // Cálculo do PID Manual
             double currentPos = getPosition();
             double output = 0;
             if (getSetpoint() > currentPos) {
