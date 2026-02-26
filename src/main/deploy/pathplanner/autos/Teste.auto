@@ -30,44 +30,7 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "ABR1"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Shoot"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "ABR2"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "ABR3"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "ABR4"
-          }
-        },
-        {
-          "type": "parallel",
-          "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "ABR5"
+                  "pathName": "New Path"
                 }
               },
               {

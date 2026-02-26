@@ -15,7 +15,7 @@ public class VisionIOLimelight implements VisionIO {
         this.rotationSupplier = rotationSupplier;
     }
 
-@Override
+    @Override
     public void updateInputs(VisionIOInputs inputs) {
         var robotRotation = rotationSupplier.get();
         LimelightHelpers.SetRobotOrientation(name, robotRotation.getDegrees(), 0, 0, 0, 0, 0);
@@ -27,11 +27,9 @@ public class VisionIOLimelight implements VisionIO {
 
         var mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue(name);
 
-        if (mt2 != null) {
-            inputs.hasTarget = mt2.tagCount > 0;
-
+        if (mt2 != null && mt2.tagCount > 0) {
+            inputs.hasTarget = true;
             inputs.robotPose = new Pose3d(mt2.pose);
-
             inputs.timestamp = mt2.timestampSeconds;
             inputs.tagCount = mt2.tagCount;
             inputs.avgTagDist = mt2.avgTagDist;
@@ -39,6 +37,7 @@ public class VisionIOLimelight implements VisionIO {
             inputs.hasTarget = false;
             inputs.robotPose = new Pose3d();
             inputs.tagCount = 0;
+            inputs.avgTagDist = Double.MAX_VALUE; 
         }
     }
 

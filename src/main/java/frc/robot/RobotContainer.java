@@ -22,10 +22,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import edu.wpi.first.wpilibj2.command.button.POVButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OIConstants;
 import frc.robot.commands.DriveCommands;
-import frc.robot.commands.TurretManualCmd;
 import frc.robot.commands.Autos.SmartTrench;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.LEDSubsystem;
@@ -95,7 +95,8 @@ public class RobotContainer {
                         new VisionIOLimelight("limelight-front", drive::getRotation),
                         new VisionIOLimelight("limelight-back", drive::getRotation));
 
-                shooter = new Shooter(new TurretIOComp(), new PivotIOComp(), new FlyWheelIOComp());//, new IntakeIOComp());
+                shooter = new Shooter(new TurretIOComp(), new PivotIOComp(), new FlyWheelIOComp());// , new
+                                                                                                   // IntakeIOComp());
                 intake = new Intake(new IntakeIOComp());
                 break;
 
@@ -110,7 +111,7 @@ public class RobotContainer {
 
                 vision = new Vision(new VisionIO() {
                 });
-                shooter = new Shooter(new TurretIOSim(), new PivotIOSim(), new FlyWheelIOSim());//, new IntakeIOSim());
+                shooter = new Shooter(new TurretIOSim(), new PivotIOSim(), new FlyWheelIOSim());// , new IntakeIOSim());
                 intake = new Intake(new IntakeIOSim());
                 break;
 
@@ -126,8 +127,10 @@ public class RobotContainer {
                 shooter = new Shooter(new TurretIO() {
                 }, new PivotIO() {
                 }, new FlyWheelIO() {
-                });/* , new IntakeIO(){
-                });*/
+                });/*
+                    * , new IntakeIO(){
+                    * });
+                    */
                 intake = new Intake(new IntakeIO() {
                 });
                 break;
@@ -147,45 +150,34 @@ public class RobotContainer {
                             ? FieldPoses.kHubRed
                             : FieldPoses.kHubBlue;
                 });
+        
+        //Intake
+        NamedCommands.registerCommand("Intake Deploy", Commands.runOnce(() -> intake.deploy(), intake));
+        NamedCommands.registerCommand("Intake Retract", Commands.runOnce(() -> {intake.retract(); intake.stop();}, intake));
 
-        NamedCommands.registerCommand("Intake Start",
-                Commands.runOnce(() -> intake.getToggleIntakeCommand().schedule()));
-        NamedCommands.registerCommand("Intake Stop", Commands.runOnce(() -> intake.stop(), intake));
-
+        //Shooter
         NamedCommands.registerCommand("Shoot", shooter.shootCommand(intake));
         NamedCommands.registerCommand("Spit", shooter.spitCommand(intake));
-        NamedCommands.registerCommand("Stop Shooter", Commands.runOnce(() -> shooter.stop(), shooter));
-
-        NamedCommands.registerCommand("SpinUp Flywheel",
-                Commands.runOnce(() -> shooter.setFlywheelVelocity(4500.0), shooter));
-
-        NamedCommands.registerCommand("Toggle Auto Aim", Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
-        NamedCommands.registerCommand("Reset Turret", Commands.runOnce(() -> shooter.setTurretSetpoint(0.0), shooter));
+        NamedCommands.registerCommand("Stop Shooter", Commands.runOnce(() -> shooter.stop(), shooter)); 
+        NamedCommands.registerCommand("Auto Aim", Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
 
         autoChooser = new LoggedDashboardChooser<>("Auto Choices", AutoBuilder.buildAutoChooser());
 
-        // --- INÍCIO DA ALTERAÇÃO AQUI ---
         drive.setDefaultCommand(
                 DriveCommands.joystickDrive(
                         drive,
                         () -> {
-                            // Verifica se é aliança vermelha para o eixo Y (Frente/Trás)
                             var alliance = DriverStation.getAlliance();
                             boolean isRed = alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
                             return isRed ? joystick1.getY() : -joystick1.getY();
                         },
                         () -> {
-                            // Verifica se é aliança vermelha para o eixo X (Esquerda/Direita)
                             var alliance = DriverStation.getAlliance();
                             boolean isRed = alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
                             return isRed ? joystick1.getX() : -joystick1.getX();
                         },
-                        () -> -joystick1.getRawAxis(4) // Rotação se mantém igual
-                )
+                        () -> -joystick1.getRawAxis(4))
                         .alongWith(Commands.run(() -> updateVisionCorrection())));
-        // --- FIM DA ALTERAÇÃO ---
-
-        shooter.setDefaultCommand(new TurretManualCmd(shooter, () -> joystick1.getPOV()));
 
         intake.setDefaultCommand(intake.getMaintainPositionCommand());
 
@@ -198,18 +190,44 @@ public class RobotContainer {
     }
 
     private void configureButtonBindings() {
-        new Trigger(() -> joystick1.getRawAxis(3) > 0.5).whileTrue(shooter.shootCommand(intake));
-        new JoystickButton(joystick1, OIConstants.kAutoAimIdx)
-                .onTrue(Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
-        new JoystickButton(joystick1, OIConstants.kIntakeIdx).onTrue(intake.getToggleIntakeCommand());
-        new JoystickButton(joystick1, OIConstants.kIntakeFWIdx).onTrue(intake.getToggleRollersCommand());
-        new JoystickButton(joystick1, OIConstants.kThroughtTrenchIdx).whileTrue(SmartTrench.run(drive));
+        // Driver
+        new JoystickButton(joystick1, OIConstants.kIntakeIdx)
+                .onTrue(intake.getToggleIntakeCommand());
+
+        new JoystickButton(joystick1, OIConstants.kIntakeFWIdx)
+                .onTrue(intake.getToggleRollersCommand());
+
+        new JoystickButton(joystick1, OIConstants.kThroughtTrenchIdx)
+                .whileTrue(SmartTrench.run(drive));
+
         new JoystickButton(joystick1, OIConstants.kResetFrontIdx)
                 .onTrue(Commands.runOnce(() -> drive.zeroHeading(), drive));
+
+        // Operador
+        new Trigger(() -> joystick2.getRawAxis(3) > 0.5)
+                .whileTrue(shooter.shootCommand(intake));
+
+        new JoystickButton(joystick2, OIConstants.kAutoAimIdx)
+                .onTrue(Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
+
         new JoystickButton(joystick2, OIConstants.kResetTurretEncoderIdx)
                 .onTrue(Commands.runOnce(() -> shooter.resetTurretEncoder(), shooter));
+
         new JoystickButton(joystick2, OIConstants.kResetPivotIdx)
                 .onTrue(Commands.runOnce(() -> shooter.resetPivotEncoder(), shooter));
+
+        new POVButton(joystick2, OIConstants.kTurretToLeftPOV)
+                .whileTrue(shooter.manualTurretCommand(false));
+
+        new POVButton(joystick2, OIConstants.kTurretToRightPOV)
+                .whileTrue(shooter.manualTurretCommand(true));
+
+        new POVButton(joystick2, OIConstants.kPivotUpPOV)
+                .whileTrue(shooter.manualPivotCommand(true));
+
+        new POVButton(joystick2, OIConstants.kPivotDownPOV)
+                .whileTrue(shooter.manualPivotCommand(false));
+
     }
 
     public Command getAutonomousCommand() {
@@ -297,4 +315,5 @@ public class RobotContainer {
         }
         Logger.recordOutput("Sim/GamePieces/Coral", coralPose);
     }
+
 }

@@ -32,23 +32,26 @@ public final class Constants {
     public static final int kDriverControllerPort = 0;
     public static final int kSecondDriverControllerPort = 1;
 
+    // Driver Controller
     public static final int kResetFrontIdx = 3;
     public static final int kThroughtTrenchIdx = 1;
     public static final int kIntakeFWIdx = 2;
     public static final int kAutoClimbingIdx = 4;
 
-    public static final int kAutoAimIdx = 5;
     public static final int kIntakeIdx = 6;
     public static final int KThroughtOtherAllianceTrench = 7;
+
+    // Operator Controller
+    public static final int kAutoAimIdx = 5;
     public static final int kShootidx = 8;
 
     public static final int kTurretToLeftPOV = 270;
     public static final int kTurretToRightPOV = 90;
+    public static final int kPivotUpPOV = 0;
+    public static final int kPivotDownPOV = 180;
 
     public static final int kResetTurretEncoderIdx = 4;
     public static final int kResetPivotIdx = 7;
-    public static final int kLowerIntakeButtonIdx = 180;
-    public static final int kRaiseIntakeButtonIdx = 0;
   }
 
   public static final class LEDConstants {

@@ -20,8 +20,8 @@
         "y": 7.4553734939759035
       },
       "prevControl": {
-        "x": 6.92589156626506,
-        "y": 7.44444578313253
+        "x": 6.718265060240964,
+        "y": 7.3023855421686745
       },
       "nextControl": null,
       "isLocked": false,
@@ -42,7 +42,7 @@
   },
   "goalEndState": {
     "velocity": 5.0,
-    "rotation": -157.01128319791934
+    "rotation": 0.0
   },
   "reversed": false,
   "folder": "AutoBlueLeft",

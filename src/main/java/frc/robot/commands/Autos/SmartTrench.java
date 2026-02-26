@@ -15,16 +15,19 @@ import frc.robot.subsystems.drive.Drive;
 import frc.robot.util.FieldConstants;
 
 public class SmartTrench {
-    
+
     public static Command run(Drive drive) {
         return Commands.defer(() -> {
-            
+
             Pose2d currentPose = drive.getPose();
             double fieldCenterY = 4.05;
 
-            boolean isFacingForward = Math.cos(currentPose.getRotation().getRadians()) > 0;
+            var allianceOpt = DriverStation.getAlliance();
+            boolean isRed = allianceOpt.isPresent() && allianceOpt.get() == Alliance.Red;
+            double cosHeading = Math.cos(currentPose.getRotation().getRadians());
+            boolean isFacingForward = isRed ? (cosHeading < 0) : (cosHeading > 0);
             boolean useLeftTrenchLogic = calculateIsLeft(currentPose.getY(), fieldCenterY);
-            
+
             PathPlannerPath selectedPath = FieldConstants.FieldPoses.getAutoTrenchPath(
                     currentPose,
                     useLeftTrenchLogic,
@@ -33,8 +36,7 @@ public class SmartTrench {
             if (selectedPath != null) {
                 return AutoBuilder.pathfindThenFollowPath(
                         selectedPath,
-                        AutoConstants.constraints
-                );
+                        AutoConstants.constraints);
             } else {
                 return Commands.none();
             }

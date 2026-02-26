@@ -13,6 +13,7 @@ import org.littletonrobotics.junction.Logger;
 import frc.robot.Constants.OIConstants;
 import frc.robot.subsystems.intake.IntakeIOInputsAutoLogged;
 import frc.robot.subsystems.intake.IntakeConstants.intakeConstants;
+import frc.robot.subsystems.shooter.Shooter;
 
 public class Intake extends SubsystemBase {
 
@@ -21,16 +22,15 @@ public class Intake extends SubsystemBase {
 
     private boolean isIntakeActive = false;
     private boolean isRollerActive = false;
+    private boolean isFlipped = false;
 
     private final ProfiledPIDController upController = new ProfiledPIDController(
-        0.8, 0.0, 0.00001, 
-        new TrapezoidProfile.Constraints(500, 500)
-    );
-    
+            1.5, 0.0, 0.00001,
+            new TrapezoidProfile.Constraints(700, 600));
+
     private final ProfiledPIDController downController = new ProfiledPIDController(
-        0.5, 0.0, 0.00001, 
-        new TrapezoidProfile.Constraints(500, 300)
-    );
+            1, 0.0, 0.00001,
+            new TrapezoidProfile.Constraints(700, 700));
 
     public Intake(IntakeIO io) {
         this.io = io;
@@ -53,8 +53,13 @@ public class Intake extends SubsystemBase {
         SmartDashboard.putNumber("Intake/ABSOLUTE POSITION REAL", getPosition());
         SmartDashboard.putNumber("Intake/IntakeApplied Volts", inputs.rotationAppliedVolts);
         SmartDashboard.putNumber("Intake/IntakeCurrent Amps", inputs.rotationCurrentAmps);
+        
+        
+        if(Shooter.isShooting){
+            IntakeShooting();
+        }
     }
-    
+
     // --- GETTERS ---
     public double getPosition() {
         return inputs.rotationPosition;
@@ -85,7 +90,7 @@ public class Intake extends SubsystemBase {
         intakeConstants.intakeSetpoint = setpoint;
     }
 
-    public void stop(){
+    public void stop() {
         io.setPlanetary(0);
         io.setIntake(0);
         isRollerActive = false;
@@ -117,22 +122,32 @@ public class Intake extends SubsystemBase {
         });
     }
 
+    public void IntakeShooting() {
+        if (intakeConstants.kIntakePushing == true && isFlipped == false) {
+            changeSetpoint(intakeConstants.IntakeShootingPosition);
+            isFlipped = true;
+            
+
+        } else if (intakeConstants.kIntakePushing == true && isFlipped == true) {
+            changeSetpoint(intakeConstants.CollectPosition);
+            isFlipped = false;
+            
+        }
+        }
 
     public Command getToggleRollersCommand() {
         return runOnce(() -> {
             if (isRollerActive) {
                 setIntake(0);
                 isRollerActive = false;
-                System.out.println("Intake: ROLETES DESLIGADOS");
             } else {
                 setIntake(intakeConstants.RollerSpeedCollect);
                 isRollerActive = true;
-                System.out.println("Intake: ROLETES LIGADOS");
             }
         });
     }
 
-    private void deploy() {
+    public void deploy() {
         isIntakeActive = true;
         isRollerActive = true;
         intakeConstants.intakeCollecting = true;
@@ -140,36 +155,35 @@ public class Intake extends SubsystemBase {
 
         downController.reset(getPosition());
 
-        setIntake(intakeConstants.RollerSpeedCollect); 
-        
-        System.out.println("Intake: DEPLOYED (Collecting)");
+        setIntake(intakeConstants.RollerSpeedCollect);
+
     }
 
-    private void retract() {
+    public void retract() {
         isIntakeActive = false;
-        isRollerActive = false;
-        intakeConstants.intakeCollecting = false;
-        
-        changeSetpoint(intakeConstants.StowedPosition); 
-        
+        isRollerActive = true;
+        intakeConstants.intakeCollecting = true;
+
+        changeSetpoint(intakeConstants.StowedPosition);
+
         upController.reset(getPosition());
 
-        setIntake(0);
-        
-        System.out.println("Intake: RETRACTED (Stowed)");
+        // setIntake(0);
     }
 
-    public Command getJoystickCommand(Supplier<Integer> pov, Supplier<Boolean> inBtn, Supplier<Boolean> outBtn) {
+    /*public Command getJoystickCommand(Supplier<Integer> pov, Supplier<Boolean> inBtn, Supplier<Boolean> outBtn) {
         return run(() -> {
             int povValue = pov.get();
             if (povValue == OIConstants.kRaiseIntakeButtonIdx) {
                 changeSetpoint(getSetpoint() - 0.005);
             } else if (povValue == OIConstants.kLowerIntakeButtonIdx) {
-                changeSetpoint(getSetpoint() + 0.005); 
+                changeSetpoint(getSetpoint() + 0.005);
             }
 
-            double clampedSetpoint = Math.max(intakeConstants.intakeMin, Math.min(getSetpoint(), intakeConstants.intakeMax));
-            if(clampedSetpoint != getSetpoint()) changeSetpoint(clampedSetpoint);
+            double clampedSetpoint = Math.max(intakeConstants.intakeMin,
+                    Math.min(getSetpoint(), intakeConstants.intakeMax));
+            if (clampedSetpoint != getSetpoint())
+                changeSetpoint(clampedSetpoint);
 
             double currentPos = getPosition();
             double output = 0;
@@ -187,7 +201,7 @@ public class Intake extends SubsystemBase {
                 setIntake(intakeConstants.RollerSpeedEject);
                 isRollerActive = true;
             } else {
-                if(!isIntakeActive){
+                if (!isIntakeActive) {
                     setIntake(0);
                     isRollerActive = false;
                 }
@@ -198,5 +212,5 @@ public class Intake extends SubsystemBase {
             setIntake(0);
             isRollerActive = false;
         });
-    }
+    }*/
 }
