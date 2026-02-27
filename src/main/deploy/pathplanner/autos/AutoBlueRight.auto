@@ -5,41 +5,27 @@
     "data": {
       "commands": [
         {
-          "type": "parallel",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "AutoAim"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Intake Deploy"
-                }
-              }
-            ]
+            "name": "Intake Deploy"
           }
         },
         {
-          "type": "parallel",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "ABR1"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Shoot"
-                }
-              }
-            ]
+            "name": "Change Shooter State"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "ABR1"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Change Shooter State"
           }
         },
         {
@@ -61,22 +47,27 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "ABR5"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "Shoot"
-                }
-              }
-            ]
+            "name": "Change Shooter State"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0.0
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "ABR5"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Change Shooter State"
           }
         }
       ]

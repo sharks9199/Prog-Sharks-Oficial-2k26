@@ -18,7 +18,7 @@ public class IntakeConstants {
 
         public static final double IntakeShootingPosition = 0.85;
         public static boolean kIntakePushing = false;
-        public static final double KTimerResetSeconds = 0.5;
+        public static final double KTimerResetSeconds = 0.2;
 
         public static final double intakeMax = 0.95;
         public static final double intakeMin = 0.69;

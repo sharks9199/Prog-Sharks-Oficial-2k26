@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.POVButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -150,16 +151,21 @@ public class RobotContainer {
                             ? FieldPoses.kHubRed
                             : FieldPoses.kHubBlue;
                 });
-        
-        //Intake
-        NamedCommands.registerCommand("Intake Deploy", Commands.runOnce(() -> intake.deploy(), intake));
-        NamedCommands.registerCommand("Intake Retract", Commands.runOnce(() -> {intake.retract(); intake.stop();}, intake));
 
-        //Shooter
+        // Intake
+        NamedCommands.registerCommand("Intake Deploy", Commands.runOnce(() -> intake.deploy(), intake));
+        NamedCommands.registerCommand("Intake Retract", Commands.runOnce(() -> {
+            intake.retract();
+            intake.stop();
+        }, intake));
+
+        // Shooter
         NamedCommands.registerCommand("Shoot", shooter.shootCommand(intake));
         NamedCommands.registerCommand("Spit", shooter.spitCommand(intake));
-        NamedCommands.registerCommand("Stop Shooter", Commands.runOnce(() -> shooter.stop(), shooter)); 
+        NamedCommands.registerCommand("Stop Shooter", Commands.runOnce(() -> shooter.stop(), shooter));
         NamedCommands.registerCommand("Auto Aim", Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
+
+        NamedCommands.registerCommand("Change Shooter State", Commands.runOnce(() -> changeShootState()));
 
         autoChooser = new LoggedDashboardChooser<>("Auto Choices", AutoBuilder.buildAutoChooser());
 
@@ -179,7 +185,7 @@ public class RobotContainer {
                         () -> -joystick1.getRawAxis(4))
                         .alongWith(Commands.run(() -> updateVisionCorrection())));
 
-        intake.setDefaultCommand(intake.getMaintainPositionCommand());
+        // intake.setDefaultCommand(intake.getMaintainPositionCommand());
 
         Commands.run(this::updateTelemetryAndState)
                 .ignoringDisable(true)
@@ -227,7 +233,12 @@ public class RobotContainer {
 
         new POVButton(joystick2, OIConstants.kPivotDownPOV)
                 .whileTrue(shooter.manualPivotCommand(false));
+        
+        new JoystickButton(joystick2, OIConstants.kreverseSystem)
+                .whileTrue(new InstantCommand(() -> shooter.reverseSystem()));
 
+        new JoystickButton(joystick2, OIConstants.kreverseSystem)
+                .onFalse(new InstantCommand(() -> shooter.reverseOffSystem()));
     }
 
     public Command getAutonomousCommand() {
@@ -316,4 +327,24 @@ public class RobotContainer {
         Logger.recordOutput("Sim/GamePieces/Coral", coralPose);
     }
 
+    public void shootAutoPeriodic(){
+        
+        if(Constants.ShootAutoEnable == true){
+            shooter.shootCommandAuto(intake,shooter.calculatedAutoAimRpm,shooter.kFeederShootRpm, shooter.kCentrifugeShootRpm);
+            
+        } else {
+            shooter.stop();
+            
+        }
+    }
+
+    public void changeShootState(){
+        Constants.ShootAutoEnable = !Constants.ShootAutoEnable;
+        System.out.print(Constants.ShootAutoEnable);
+    }
+
+    public void doWhenAutoInit(){
+        shooter.toggleAutoAim();
+    }
+    
 }

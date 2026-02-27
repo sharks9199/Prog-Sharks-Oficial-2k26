@@ -23,6 +23,7 @@ public class Intake extends SubsystemBase {
     private boolean isIntakeActive = false;
     private boolean isRollerActive = false;
     private boolean isFlipped = false;
+    private boolean wasShooting = false;
 
     private final ProfiledPIDController upController = new ProfiledPIDController(
             1.5, 0.0, 0.00001,
@@ -53,11 +54,31 @@ public class Intake extends SubsystemBase {
         SmartDashboard.putNumber("Intake/ABSOLUTE POSITION REAL", getPosition());
         SmartDashboard.putNumber("Intake/IntakeApplied Volts", inputs.rotationAppliedVolts);
         SmartDashboard.putNumber("Intake/IntakeCurrent Amps", inputs.rotationCurrentAmps);
-        
-        
-        if(Shooter.isShooting){
+
+        if (Shooter.isShooting) {
             IntakeShooting();
+        } else if (wasShooting) {
+            if (isIntakeActive) {
+                changeSetpoint(intakeConstants.CollectPosition);
+            } else {
+                changeSetpoint(intakeConstants.StowedPosition);
+            }
+
+            isFlipped = false;
         }
+        wasShooting = Shooter.isShooting;
+        
+        double currentPos = getPosition();
+        double target = getSetpoint();
+        double output = 0;
+
+        if (target > currentPos) {
+            output = downController.calculate(currentPos, target);
+        } else {
+            output = upController.calculate(currentPos, target);
+        }
+
+        setPlanetary(output);
     }
 
     // --- GETTERS ---
@@ -96,7 +117,7 @@ public class Intake extends SubsystemBase {
         isRollerActive = false;
     }
 
-    public Command getMaintainPositionCommand() {
+   /* public Command getMaintainPositionCommand() {
         return run(() -> {
             double currentPos = getPosition();
             double target = getSetpoint();
@@ -110,7 +131,7 @@ public class Intake extends SubsystemBase {
 
             setPlanetary(output);
         });
-    }
+    }*/
 
     public Command getToggleIntakeCommand() {
         return runOnce(() -> {
@@ -126,14 +147,13 @@ public class Intake extends SubsystemBase {
         if (intakeConstants.kIntakePushing == true && isFlipped == false) {
             changeSetpoint(intakeConstants.IntakeShootingPosition);
             isFlipped = true;
-            
 
         } else if (intakeConstants.kIntakePushing == true && isFlipped == true) {
             changeSetpoint(intakeConstants.CollectPosition);
             isFlipped = false;
-            
+
         }
-        }
+    }
 
     public Command getToggleRollersCommand() {
         return runOnce(() -> {
@@ -171,46 +191,49 @@ public class Intake extends SubsystemBase {
         // setIntake(0);
     }
 
-    /*public Command getJoystickCommand(Supplier<Integer> pov, Supplier<Boolean> inBtn, Supplier<Boolean> outBtn) {
-        return run(() -> {
-            int povValue = pov.get();
-            if (povValue == OIConstants.kRaiseIntakeButtonIdx) {
-                changeSetpoint(getSetpoint() - 0.005);
-            } else if (povValue == OIConstants.kLowerIntakeButtonIdx) {
-                changeSetpoint(getSetpoint() + 0.005);
-            }
-
-            double clampedSetpoint = Math.max(intakeConstants.intakeMin,
-                    Math.min(getSetpoint(), intakeConstants.intakeMax));
-            if (clampedSetpoint != getSetpoint())
-                changeSetpoint(clampedSetpoint);
-
-            double currentPos = getPosition();
-            double output = 0;
-            if (getSetpoint() > currentPos) {
-                output = upController.calculate(currentPos, getSetpoint());
-            } else {
-                output = downController.calculate(currentPos, getSetpoint());
-            }
-            setPlanetary(output);
-
-            if (inBtn.get()) {
-                setIntake(intakeConstants.RollerSpeedManual);
-                isRollerActive = true;
-            } else if (outBtn.get()) {
-                setIntake(intakeConstants.RollerSpeedEject);
-                isRollerActive = true;
-            } else {
-                if (!isIntakeActive) {
-                    setIntake(0);
-                    isRollerActive = false;
-                }
-            }
-
-        }).finallyDo(() -> {
-            setStopMode();
-            setIntake(0);
-            isRollerActive = false;
-        });
-    }*/
+    /*
+     * public Command getJoystickCommand(Supplier<Integer> pov, Supplier<Boolean>
+     * inBtn, Supplier<Boolean> outBtn) {
+     * return run(() -> {
+     * int povValue = pov.get();
+     * if (povValue == OIConstants.kRaiseIntakeButtonIdx) {
+     * changeSetpoint(getSetpoint() - 0.005);
+     * } else if (povValue == OIConstants.kLowerIntakeButtonIdx) {
+     * changeSetpoint(getSetpoint() + 0.005);
+     * }
+     * 
+     * double clampedSetpoint = Math.max(intakeConstants.intakeMin,
+     * Math.min(getSetpoint(), intakeConstants.intakeMax));
+     * if (clampedSetpoint != getSetpoint())
+     * changeSetpoint(clampedSetpoint);
+     * 
+     * double currentPos = getPosition();
+     * double output = 0;
+     * if (getSetpoint() > currentPos) {
+     * output = upController.calculate(currentPos, getSetpoint());
+     * } else {
+     * output = downController.calculate(currentPos, getSetpoint());
+     * }
+     * setPlanetary(output);
+     * 
+     * if (inBtn.get()) {
+     * setIntake(intakeConstants.RollerSpeedManual);
+     * isRollerActive = true;
+     * } else if (outBtn.get()) {
+     * setIntake(intakeConstants.RollerSpeedEject);
+     * isRollerActive = true;
+     * } else {
+     * if (!isIntakeActive) {
+     * setIntake(0);
+     * isRollerActive = false;
+     * }
+     * }
+     * 
+     * }).finallyDo(() -> {
+     * setStopMode();
+     * setIntake(0);
+     * isRollerActive = false;
+     * });
+     * }
+     */
 }

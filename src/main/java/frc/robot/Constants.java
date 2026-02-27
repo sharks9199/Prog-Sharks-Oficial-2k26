@@ -13,6 +13,8 @@ public final class Constants {
   public static final Mode simMode = Mode.SIM;
   public static final Mode currentMode = RobotBase.isReal() ? Mode.REAL : simMode;
 
+  public static boolean ShootAutoEnable = false;
+
   public static enum Mode {
     REAL, SIM, REPLAY
   }
@@ -26,6 +28,8 @@ public final class Constants {
         Units.degreesToRadians(360), Units.degreesToRadians(540));
 
     public static final PathConstraints constraintsAuto = constraints;
+
+
   }
 
   public static final class OIConstants {
@@ -43,7 +47,7 @@ public final class Constants {
 
     // Operator Controller
     public static final int kAutoAimIdx = 5;
-    public static final int kShootidx = 8;
+    //public static final int kShootidx = 8;
 
     public static final int kTurretToLeftPOV = 270;
     public static final int kTurretToRightPOV = 90;
@@ -52,6 +56,7 @@ public final class Constants {
 
     public static final int kResetTurretEncoderIdx = 4;
     public static final int kResetPivotIdx = 7;
+    public static final int kreverseSystem = 6;
   }
 
   public static final class LEDConstants {

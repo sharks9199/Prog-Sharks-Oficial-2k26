@@ -28,6 +28,10 @@ public class FieldConstants {
         public static final Pose2d kInitRedTrenchRight = new Pose2d(13.351, 7.400, new Rotation2d(180));
         public static final Pose2d kFinalRedTrenchRight = new Pose2d(10.696, 7.400, new Rotation2d(180));
 
+        //Cuspir pra zona
+        public static final Pose2d kSpitPointLeft = new Pose2d(2.603, 6.047, new Rotation2d(0));
+        public static final Pose2d kSpitPointRight = new Pose2d(2.603, 2.502, new Rotation2d(0));
+
         // OUTPOST
         // Outpost Blue
         public static final Pose2d kOutPostBlue = new Pose2d(0.567, 0.644, new Rotation2d(0.000));
