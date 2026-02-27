@@ -3,24 +3,24 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 6.5,
+        "x": 3.69,
         "y": 0.64
       },
       "prevControl": null,
       "nextControl": {
-        "x": 4.1451640513552075,
+        "x": 1.3351640513552074,
         "y": 0.6270613409415137
       },
       "isLocked": false,
-      "linkedName": "FinalABR4"
+      "linkedName": "final ABR4"
     },
     {
       "anchor": {
-        "x": 0.9484337349397589,
+        "x": 0.54,
         "y": 0.6255542168674697
       },
       "prevControl": {
-        "x": 4.764022134482831,
+        "x": 4.355588399543071,
         "y": 0.6255542168674693
       },
       "nextControl": null,

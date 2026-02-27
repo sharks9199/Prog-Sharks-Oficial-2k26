@@ -77,7 +77,7 @@ public class FlyWheelIOComp implements FlyWheelIO {
     feederConfig.Slot0.kP = 0.1;
     feederConfig.Slot0.kI = 0.0;
     feederConfig.Slot0.kD = 0.0;
-    feederConfig.Slot0.kV = 0.12;
+    feederConfig.Slot0.kV = 0.14;
     feederMotor.getConfigurator().apply(feederConfig);
   }
 

@@ -49,8 +49,8 @@ public class Shooter extends SubsystemBase {
     private double kMaxPivotAngle = 68.89;
 
     private double kShootRpm = 6000.0;
-    public double kFeederShootRpm = 5000.0;
-    public double kCentrifugeShootRpm = 5000.0;
+    public double kFeederShootRpm = 6500.0;
+    public double kCentrifugeShootRpm = 6500.0;
 
     private double kSpitRpm = 1000.0;
     private double kFeederSpitRpm = 2000.0;
@@ -259,8 +259,8 @@ public class Shooter extends SubsystemBase {
     }
 
     public void reverseSystem(){
-        flywheelIO.runFeederVelocity(RPM.of(-1000));
-        flywheelIO.runCentrifugeVelocity(RPM.of(-1000));
+        flywheelIO.runFeederVelocity(RPM.of(-3000));
+        flywheelIO.runCentrifugeVelocity(RPM.of(-3000));
     }
 
     public void reverseOffSystem(){

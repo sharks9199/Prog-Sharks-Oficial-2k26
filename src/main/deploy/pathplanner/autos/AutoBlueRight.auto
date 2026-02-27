@@ -29,6 +29,12 @@
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "Intake Deploy"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "ABR2"
@@ -53,15 +59,39 @@
           }
         },
         {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.0
-          }
-        },
-        {
           "type": "path",
           "data": {
             "pathName": "ABR5"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Change Shooter State"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Intake Deploy"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0.5
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Change Shooter State"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 5.0
           }
         },
         {

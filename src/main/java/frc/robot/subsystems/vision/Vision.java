@@ -19,7 +19,7 @@ public class Vision extends SubsystemBase {
     public Vision(VisionIO... ios) {
         this.ios = ios;
         this.inputs = new VisionIOInputsAutoLogged[ios.length];
-        
+
         for (int i = 0; i < ios.length; i++) {
             inputs[i] = new VisionIOInputsAutoLogged();
         }
@@ -29,7 +29,7 @@ public class Vision extends SubsystemBase {
     public void periodic() {
         for (int i = 0; i < ios.length; i++) {
             ios[i].updateInputs(inputs[i]);
-            
+
             Logger.processInputs("Vision/Inst" + i, inputs[i]);
 
             if (inputs[i].hasTarget) {
@@ -42,20 +42,21 @@ public class Vision extends SubsystemBase {
 
     private VisionIOInputsAutoLogged getBestInput() {
         VisionIOInputsAutoLogged bestInput = null;
-        double minDistance = Double.MAX_VALUE;
+        double minDistance = 2.0;
 
         for (VisionIOInputsAutoLogged input : inputs) {
-            if (input.hasTarget && input.tagCount > 0 && input.avgTagDist < minDistance) {
+            if (input.hasTarget && input.tagCount > 0 && input.avgTagDist <= minDistance) {
                 bestInput = input;
                 minDistance = input.avgTagDist;
             }
         }
-        
+
         return bestInput;
     }
+
     public List<VisionMeasurement> getVisionMeasurements() {
         List<VisionMeasurement> measurements = new ArrayList<>();
-        
+
         VisionIOInputsAutoLogged bestInput = getBestInput();
 
         if (bestInput == null) {
@@ -68,9 +69,6 @@ public class Vision extends SubsystemBase {
         if (bestInput.tagCount >= 2) {
             xyStdDev = 0.02;
             thetaStdDev = 0.05;
-        } else if (bestInput.avgTagDist > 4.0) {
-            xyStdDev = 1.0;
-            thetaStdDev = 3.0;
         } else {
             xyStdDev = 0.1;
             thetaStdDev = 1.5;
@@ -79,13 +77,13 @@ public class Vision extends SubsystemBase {
         Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev);
 
         measurements.add(new VisionMeasurement(
-            bestInput.robotPose.toPose2d(),
-            bestInput.timestamp,
-            stdDevs
-        ));
+                bestInput.robotPose.toPose2d(),
+                bestInput.timestamp,
+                stdDevs));
 
         return measurements;
     }
+
     public double getBestTX() {
         VisionIOInputsAutoLogged best = getBestInput();
         return best != null ? best.tx : 0.0;
@@ -100,5 +98,6 @@ public class Vision extends SubsystemBase {
         return getBestInput() != null;
     }
 
-    public record VisionMeasurement(Pose2d pose, double timestamp, Matrix<N3, N1> stdDevs) {}
+    public record VisionMeasurement(Pose2d pose, double timestamp, Matrix<N3, N1> stdDevs) {
+    }
 }

@@ -3,12 +3,12 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 4.413,
+        "x": 4.1,
         "y": 0.65
       },
       "prevControl": null,
       "nextControl": {
-        "x": 5.413,
+        "x": 5.1,
         "y": 0.6500000000000002
       },
       "isLocked": false,
@@ -28,7 +28,12 @@
       "linkedName": "FinalABR2"
     }
   ],
-  "rotationTargets": [],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 0.5,
+      "rotationDegrees": 0.0
+    }
+  ],
   "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [],

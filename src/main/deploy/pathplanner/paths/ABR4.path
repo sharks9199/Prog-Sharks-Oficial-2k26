@@ -28,7 +28,7 @@
         "y": 0.6045073805334855
       },
       "isLocked": false,
-      "linkedName": "Final ABR4"
+      "linkedName": null
     },
     {
       "anchor": {
@@ -44,7 +44,7 @@
         "y": 0.6153643227410308
       },
       "isLocked": false,
-      "linkedName": "FinalABR4"
+      "linkedName": null
     },
     {
       "anchor": {
@@ -57,7 +57,7 @@
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": null
+      "linkedName": "final ABR4"
     }
   ],
   "rotationTargets": [
@@ -70,7 +70,7 @@
   "pointTowardsZones": [],
   "eventMarkers": [],
   "globalConstraints": {
-    "maxVelocity": 2.0,
+    "maxVelocity": 1.5,
     "maxAcceleration": 3.0,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0,

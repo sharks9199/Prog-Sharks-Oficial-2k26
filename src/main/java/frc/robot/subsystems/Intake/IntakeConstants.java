@@ -9,16 +9,16 @@ public class IntakeConstants {
         public static final int ThroughBoreEncoderPort = 0;
         public static final double EncoderOffset = 0.0;
 
-        public static final double RollerSpeedCollect = 2.0;
+        public static final double RollerSpeedCollect = 5.0;
         public static final double RollerSpeedManual = 0.5;
 
         public static final double RollerSpeedEject = -0.5;
         public static final double CollectPosition = 0.95;
         public static final double StowedPosition = 0.74;
 
-        public static final double IntakeShootingPosition = 0.85;
+        public static final double IntakeShootingPosition = 0.82;
         public static boolean kIntakePushing = false;
-        public static final double KTimerResetSeconds = 0.2;
+        public static final double KTimerResetSeconds = 0.1;
 
         public static final double intakeMax = 0.95;
         public static final double intakeMin = 0.69;
