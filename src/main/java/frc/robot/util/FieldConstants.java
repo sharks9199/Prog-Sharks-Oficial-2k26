@@ -29,8 +29,13 @@ public class FieldConstants {
         public static final Pose2d kFinalRedTrenchRight = new Pose2d(10.696, 7.400, new Rotation2d(180));
 
         //Cuspir pra zona
-        public static final Pose2d kSpitPointLeft = new Pose2d(2.603, 6.047, new Rotation2d(0));
-        public static final Pose2d kSpitPointRight = new Pose2d(2.603, 2.502, new Rotation2d(0));
+        public static final Pose2d kSpitPointLeft = new Pose2d(1.603, 6.047, new Rotation2d(0));
+        public static final Pose2d kSpitPointRight = new Pose2d(1.603, 2.502, new Rotation2d(0));
+
+        //Começo da Zona neutra Azul
+
+        //Começo da Zona neutra Vermelha
+
 
         // OUTPOST
         // Outpost Blue
@@ -54,6 +59,9 @@ public class FieldConstants {
 
             double blueZoneBoundary = 5.204;
             double redZoneBoundary = 11.285;
+
+            double startBlueNeutralZone = 4.750;
+            double startRedNeutralzone = 11.272;
 
             boolean isInBase = isRed ? (robotPose.getX() > redZoneBoundary) : (robotPose.getX() < blueZoneBoundary);
 

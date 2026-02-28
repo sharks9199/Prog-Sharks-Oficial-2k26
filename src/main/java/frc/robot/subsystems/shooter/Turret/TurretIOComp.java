@@ -40,7 +40,7 @@ public class TurretIOComp implements TurretIO {
     config.Slot0.kV = 0.12; 
 
     config.MotionMagic.MotionMagicCruiseVelocity = 1.5; 
-    config.MotionMagic.MotionMagicAcceleration = 2.0;
+    config.MotionMagic.MotionMagicAcceleration = 10.0;
     config.MotionMagic.MotionMagicJerk = 0;
 
     talon.getConfigurator().apply(config);

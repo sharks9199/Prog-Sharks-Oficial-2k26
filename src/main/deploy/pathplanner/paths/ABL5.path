@@ -3,13 +3,13 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 4.620144578313253,
-        "y": 7.4553734939759035
+        "x": 4.207261055634806,
+        "y": 7.444336661911555
       },
       "prevControl": null,
       "nextControl": {
-        "x": 2.8820888192538217,
-        "y": 7.4553734939759035
+        "x": 2.4692052965753746,
+        "y": 7.444336661911555
       },
       "isLocked": false,
       "linkedName": "EndBlueLeftAuto4"
@@ -20,15 +20,24 @@
         "y": 3.7727349397590366
       },
       "prevControl": {
-        "x": 2.010432634962103,
-        "y": 5.4288832992454825
+        "x": 2.010443787446368,
+        "y": 5.428883212079146
       },
       "nextControl": null,
       "isLocked": false,
       "linkedName": null
     }
   ],
-  "rotationTargets": [],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 0.4,
+      "rotationDegrees": 0.0
+    },
+    {
+      "waypointRelativePos": 0.8,
+      "rotationDegrees": 0.0
+    }
+  ],
   "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [],
@@ -48,7 +57,7 @@
   "folder": "AutoBlueLeft",
   "idealStartingState": {
     "velocity": 1.0,
-    "rotation": 180.0
+    "rotation": 0.0
   },
   "useDefaultConstraints": false
 }

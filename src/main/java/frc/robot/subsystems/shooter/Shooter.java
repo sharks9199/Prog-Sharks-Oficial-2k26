@@ -13,6 +13,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -25,6 +26,8 @@ import frc.robot.subsystems.shooter.Pivot.PivotIO;
 import frc.robot.subsystems.shooter.Pivot.PivotIOInputsAutoLogged;
 import frc.robot.subsystems.shooter.Turret.TurretIO;
 import frc.robot.subsystems.shooter.Turret.TurretIOInputsAutoLogged;
+import frc.robot.util.FieldConstants;
+import java.util.function.DoubleSupplier;
 
 public class Shooter extends SubsystemBase {
 
@@ -68,14 +71,21 @@ public class Shooter extends SubsystemBase {
     private double kMinTurretAngle = -110.0;
     private double kMaxTurretAngle = 17.0;
 
-    private double kRpmSlope = 245.0;
-    private double kRpmIntercept = 2040.00;
+    private double kRpmSlope = 270.0;
+    private double kRpmIntercept = 2010.00;
     private double kMaxSafeRpm = 6000.0;
 
     private final double kGravity = 9.81;
     private final double kWheelRadiusMeters = Units.inchesToMeters(2.0);
 
+    private boolean flywheelEnabled = false;
+
+    private double kSpitPivotAngle = 55.0;
+
     public double calculatedAutoAimRpm = 0.0;
+    public double calculatedFeederRpm = 0.0;
+    public double calculatedCentrifugeRpm = 0.0;
+    public boolean isAutoSpitting = false;
 
     public static boolean hasReachedSpeed = false;
     private boolean autoAimEnabled = false;
@@ -95,9 +105,8 @@ public class Shooter extends SubsystemBase {
     public static boolean isFirstPushingTrigger = true;
     public static boolean isShooting = false;
 
-    // Variáveis de Tuning do Shoot-on-the-fly
-    private double kTimeOfFlightMultiplier = 1.0; // Compensa a resistência do ar
-    private double kSystemLatencySeconds = 0.15;  // Compensa atrasos mecânicos
+    private double kTimeOfFlightMultiplier = 1.9; // Compensa a resistência do ar
+    private double kSystemLatencySeconds = 0.9; // Compensa atrasos mecânicos
 
     public Shooter(TurretIO turretIO, PivotIO pivotIO, FlyWheelIO flywheelIO) {
         this.turretIO = turretIO;
@@ -105,8 +114,7 @@ public class Shooter extends SubsystemBase {
         this.flywheelIO = flywheelIO;
 
         SmartDashboard.putNumber("Tuning/Shooter/MinPivotAngle", kMinPivotAngle);
-        
-        // Inicializa os valores no SmartDashboard para calibração
+
         SmartDashboard.putNumber("Tuning/Shooter/ToF_Multiplier", kTimeOfFlightMultiplier);
         SmartDashboard.putNumber("Tuning/Shooter/System_Latency", kSystemLatencySeconds);
     }
@@ -138,7 +146,6 @@ public class Shooter extends SubsystemBase {
         SmartDashboard.putNumber("Turret/CurrentAngle", getTurretPosition());
         SmartDashboard.putNumber("Pivot/CurrentAngle", getPivotPosition());
 
-        // Atualiza as variáveis de tuning com o que estiver no SmartDashboard
         kTimeOfFlightMultiplier = SmartDashboard.getNumber("Tuning/Shooter/ToF_Multiplier", kTimeOfFlightMultiplier);
         kSystemLatencySeconds = SmartDashboard.getNumber("Tuning/Shooter/System_Latency", kSystemLatencySeconds);
 
@@ -147,53 +154,80 @@ public class Shooter extends SubsystemBase {
             Translation2d realTargetLocation = targetSupplier.get();
             ChassisSpeeds robotSpeeds = robotVelocitySupplier.get();
 
-            // 1. Converter velocidades do robô para velocidades relativas à quadra (Field Relative)
-            Translation2d fieldVelocity = new Translation2d(
-                    robotSpeeds.vxMetersPerSecond,
-                    robotSpeeds.vyMetersPerSecond).rotateBy(robotPose.getRotation());
+            var allianceOpt = DriverStation.getAlliance();
+            boolean isRed = allianceOpt.isPresent() && allianceOpt.get() == DriverStation.Alliance.Red;
+            boolean inSpitZone = isRed ? (robotPose.getX() < 11.272) : (robotPose.getX() > 4.750);
 
-            // 2. Passo 1: Calcular os valores ESTÁTICOS para descobrir o Tempo de Voo Base
-            double staticDist = getDistanceToTarget(robotPose, realTargetLocation);
-            double staticTargetRpm = testModeEnabled ? testManualRpm : (kRpmSlope * staticDist) + kRpmIntercept;
-            staticTargetRpm = MathUtil.clamp(staticTargetRpm, 0, kMaxSafeRpm);
+            isAutoSpitting = inSpitZone;
+            SmartDashboard.putBoolean("Shooter/IsAutoSpitting", isAutoSpitting);
 
-            double staticMps = convertRpmToMps(staticTargetRpm);
-            double staticPivot = calculatePivotAngleNumeric(staticDist, staticMps);
+            if (inSpitZone) {
+                Translation2d spitTarget = (robotPose.getY() > 4.1)
+                        ? FieldConstants.FieldPoses.kSpitPointLeft.getTranslation()
+                        : FieldConstants.FieldPoses.kSpitPointRight.getTranslation();
 
-            // 3. Passo 2: Calcular o Tempo de Voo com compensações (Tuning!)
-            double horizontalMps = staticMps * Math.cos(Math.toRadians(staticPivot));
-            double baseTimeOfFlight = staticDist / Math.max(horizontalMps, 0.1);
-            
-            // Aplica os fudge factors de voo e latência
-            double timeOfFlight = (baseTimeOfFlight * kTimeOfFlightMultiplier) + kSystemLatencySeconds;
+                if (isRed) {
+                    spitTarget = new Translation2d(16.541 - spitTarget.getX(), spitTarget.getY());
+                }
+                double targetTurret = calculateTurretAngle(robotPose, spitTarget);
+                setTurretSetpoint(targetTurret);
 
-            // 4. Passo 3: Criar o ALVO VIRTUAL
-            Translation2d virtualTargetLocation = new Translation2d(
-                    realTargetLocation.getX() - (fieldVelocity.getX() * timeOfFlight),
-                    realTargetLocation.getY() - (fieldVelocity.getY() * timeOfFlight));
+                setPivotPosition(kSpitPivotAngle);
+                double spitDist = getDistanceToTarget(robotPose, spitTarget);
+                double rawTargetRpm = testModeEnabled ? testManualRpm : (kRpmSlope * spitDist) + kRpmIntercept;
+                double targetRpm = MathUtil.clamp(rawTargetRpm, 0, kMaxSafeRpm);
 
-            // LOG NO ADVANTAGE SCOPE (Desenhando os alvos para ver na tela 3D)
-            Logger.recordOutput("Shooter/RealTargetPose", new Pose2d(realTargetLocation, new Rotation2d()));
-            Logger.recordOutput("Shooter/VirtualTargetPose", new Pose2d(virtualTargetLocation, new Rotation2d()));
+                calculatedAutoAimRpm = targetRpm;
+                calculatedFeederRpm = kFeederShootRpm;
+                calculatedCentrifugeRpm = kCentrifugeShootRpm;
 
-            // 5. Passo 4: Recalcular TUDO baseado no Alvo Virtual
-            double dynamicDist = getDistanceToTarget(robotPose, virtualTargetLocation);
-            SmartDashboard.putNumber("Calibration/TEST_DistanceToTarget", dynamicDist);
+                setFlywheelVelocity(calculatedAutoAimRpm);
 
-            double rawTargetRpm = testModeEnabled ? testManualRpm : (kRpmSlope * dynamicDist) + kRpmIntercept;
-            rawTargetRpm = MathUtil.clamp(rawTargetRpm, 0, kMaxSafeRpm);
-            double targetRpm = rawTargetRpm;
+                Logger.recordOutput("Shooter/RealTargetPose", new Pose2d(spitTarget, new Rotation2d()));
+                Logger.recordOutput("Shooter/VirtualTargetPose", new Pose2d(spitTarget, new Rotation2d()));
+            } else {
+                ChassisSpeeds fieldRelativeSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(
+                        robotSpeeds, robotPose.getRotation());
 
-            double dynamicMps = convertRpmToMps(targetRpm);
-            double targetPivot = calculatePivotAngleNumeric(dynamicDist, dynamicMps);
-            double targetTurret = calculateTurretAngle(robotPose, virtualTargetLocation);
+                Translation2d fieldVelocity = new Translation2d(
+                        fieldRelativeSpeeds.vxMetersPerSecond, fieldRelativeSpeeds.vyMetersPerSecond);
 
-            // 6. Enviar os valores finais
-            setTurretSetpoint(targetTurret);
-            setPivotPosition(targetPivot);
-            setFlywheelVelocity(targetRpm);
+                double staticDist = getDistanceToTarget(robotPose, realTargetLocation);
+                double staticTargetRpm = testModeEnabled ? testManualRpm : (kRpmSlope * staticDist) + kRpmIntercept;
+                staticTargetRpm = MathUtil.clamp(staticTargetRpm, 0, kMaxSafeRpm);
 
-            calculatedAutoAimRpm = targetRpm;
+                double staticMps = convertRpmToMps(staticTargetRpm);
+                double staticPivot = calculatePivotAngleNumeric(staticDist, staticMps);
+
+                double horizontalMps = staticMps * Math.cos(Math.toRadians(staticPivot));
+                double baseTimeOfFlight = staticDist / Math.max(horizontalMps, 0.1);
+
+                double timeOfFlight = (baseTimeOfFlight * kTimeOfFlightMultiplier) + kSystemLatencySeconds;
+
+                Translation2d virtualTargetLocation = realTargetLocation.minus(fieldVelocity.times(timeOfFlight));
+
+                Logger.recordOutput("Shooter/RealTargetPose", new Pose2d(realTargetLocation, new Rotation2d()));
+                Logger.recordOutput("Shooter/VirtualTargetPose", new Pose2d(virtualTargetLocation, new Rotation2d()));
+
+                double dynamicDist = getDistanceToTarget(robotPose, virtualTargetLocation);
+                SmartDashboard.putNumber("Calibration/TEST_DistanceToTarget", dynamicDist);
+
+                double rawTargetRpm = testModeEnabled ? testManualRpm : (kRpmSlope * dynamicDist) + kRpmIntercept;
+                rawTargetRpm = MathUtil.clamp(rawTargetRpm, 0, kMaxSafeRpm);
+                double targetRpm = rawTargetRpm;
+
+                double dynamicMps = convertRpmToMps(targetRpm);
+                double targetPivot = calculatePivotAngleNumeric(dynamicDist, dynamicMps);
+                double targetTurret = calculateTurretAngle(robotPose, virtualTargetLocation);
+
+                setTurretSetpoint(targetTurret);
+                setPivotPosition(targetPivot);
+                setFlywheelVelocity(targetRpm);
+
+                calculatedAutoAimRpm = targetRpm;
+                calculatedFeederRpm = kFeederShootRpm;
+                calculatedCentrifugeRpm = kCentrifugeShootRpm;
+            }
         }
 
         currentTurretTarget = MathUtil.clamp(currentTurretTarget, kMinTurretAngle, kMaxTurretAngle);
@@ -221,7 +255,11 @@ public class Shooter extends SubsystemBase {
     }
 
     public void setFlywheelVelocity(double rpm) {
-        this.currentFlywheelTargetRpm = rpm;
+        if (flywheelEnabled) {
+            this.currentFlywheelTargetRpm = rpm;
+        } else {
+            this.currentFlywheelTargetRpm = 0.0;
+        }
     }
 
     public void runFeeder(double rpm) {
@@ -252,9 +290,16 @@ public class Shooter extends SubsystemBase {
         return flywheelWithinTolerance;
     }
 
-    public Command runShootSequence(double manualFlywheelTargetRpm, double feederTargetRpm,
-            double centrifugeTargetRpm) {
+    public Command runShootSequence(DoubleSupplier flywheelTargetRpm, DoubleSupplier feederTargetRpm,
+            DoubleSupplier centrifugeTargetRpm) {
         return this.run(() -> {
+
+            // Lê os valores ATUALIZADOS no exato momento do tiro
+            double currentFlywheel = flywheelTargetRpm.getAsDouble();
+            double currentFeeder = feederTargetRpm.getAsDouble();
+            double currentCentrifuge = centrifugeTargetRpm.getAsDouble();
+
+            setFlywheelVelocity(currentFlywheel);
 
             isShooting = true;
 
@@ -269,11 +314,9 @@ public class Shooter extends SubsystemBase {
             }
 
             if (hasReachedSpeed) {
-                runFeeder(feederTargetRpm);
-                runCentrifuge(centrifugeTargetRpm);
-            }
-
-            else {
+                runFeeder(currentFeeder);
+                runCentrifuge(currentCentrifuge);
+            } else {
                 runFeeder(0.0);
                 runCentrifuge(0.0);
             }
@@ -310,7 +353,10 @@ public class Shooter extends SubsystemBase {
     }
 
     public Command shootCommand(Intake intake) {
-        return runShootSequence(calculatedAutoAimRpm, kFeederShootRpm, kCentrifugeShootRpm);
+        return runShootSequence(
+                () -> autoAimEnabled ? calculatedAutoAimRpm : kShootRpm,
+                () -> autoAimEnabled ? calculatedFeederRpm : kFeederShootRpm,
+                () -> autoAimEnabled ? calculatedCentrifugeRpm : kCentrifugeShootRpm);
     }
 
     public void shootCommandAuto(Intake intake, double calculatedAutoAimRpm, double feederTargetRpm,
@@ -354,7 +400,10 @@ public class Shooter extends SubsystemBase {
     }
 
     public Command spitCommand(Intake intake) {
-        return runShootSequence(kSpitRpm, kFeederSpitRpm, kCentrifugeSpitRpm);
+        return runShootSequence(
+                () -> kSpitRpm,
+                () -> kFeederSpitRpm,
+                () -> kCentrifugeSpitRpm);
     }
 
     public double getDistanceToTarget(Pose2d robotPose, Translation2d targetLocation) {
@@ -401,6 +450,9 @@ public class Shooter extends SubsystemBase {
 
     public void toggleAutoAim() {
         autoAimEnabled = !autoAimEnabled;
+        if (autoAimEnabled) {
+            flywheelEnabled = true;
+        }
     }
 
     public void stop() {
@@ -420,6 +472,26 @@ public class Shooter extends SubsystemBase {
 
     public boolean isAutoAimEnabled() {
         return autoAimEnabled;
+    }
+
+    public boolean isTurretAtTarget() {
+        return Math.abs(getTurretPosition() - currentTurretTarget) <= kTurretToleranceDeg;
+    }
+
+    public boolean isPivotAtTarget() {
+        return Math.abs(getPivotPosition() - currentPivotTarget) <= kPivotToleranceDeg;
+    }
+
+    public boolean isReadyToShoot() {
+        return autoAimEnabled && isTurretAtTarget() && isPivotAtTarget();
+    }
+
+    public void toggleFlywheel() {
+        flywheelEnabled = !flywheelEnabled;
+        SmartDashboard.putBoolean("Shooter/FlywheelEnabled", flywheelEnabled);
+    }
+    public Command toggleFlywheelCommand() {
+        return this.runOnce(this::toggleFlywheel).withName("ToggleFlywheel");
     }
 
     public Command manualTurretCommand(boolean isRight) {

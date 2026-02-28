@@ -38,7 +38,7 @@ public class SmartTrench {
                 Pose2d originalStart = selectedPath.getStartingHolonomicPose().orElse(currentPose);
                 Rotation2d bestRotation = isFacingForward ? Rotation2d.fromDegrees(0) : Rotation2d.fromDegrees(180);
                 Pose2d smartStartPose = new Pose2d(originalStart.getTranslation(), bestRotation);
-                double goalVelocity = 0.5;
+                double goalVelocity = 0.7;
 
                 Command pathfind = AutoBuilder.pathfindToPose(
                         smartStartPose,

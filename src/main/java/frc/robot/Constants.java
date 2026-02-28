@@ -42,7 +42,7 @@ public final class Constants {
     public static final int kIntakeFWIdx = 2;
     public static final int kAutoClimbingIdx = 4;
 
-    public static final int kIntakeIdx = 6;
+    public static final int kIntakeIdxDriver = 6;
     public static final int KThroughtOtherAllianceTrench = 7;
 
     // Operator Controller
@@ -56,7 +56,10 @@ public final class Constants {
 
     public static final int kResetTurretEncoderIdx = 4;
     public static final int kResetPivotIdx = 7;
-    public static final int kreverseSystem = 6;
+    public static final int kReverseSystem = 6;
+    public static final int kToggleFlywheel = 1;
+    public static final int kIntakeIdxOperador = 2;
+    public static final int kIntakeToggleShootingIdx = 2;
   }
 
   public static final class LEDConstants {

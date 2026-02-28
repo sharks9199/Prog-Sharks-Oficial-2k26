@@ -54,6 +54,7 @@ import frc.robot.subsystems.shooter.Pivot.PivotIOSim;
 import frc.robot.subsystems.shooter.Turret.TurretIO;
 import frc.robot.subsystems.shooter.Turret.TurretIOComp;
 import frc.robot.subsystems.shooter.Turret.TurretIOSim;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 
 public class RobotContainer {
 
@@ -97,7 +98,7 @@ public class RobotContainer {
                         new VisionIOLimelight("limelight-back", drive::getRotation));
 
                 shooter = new Shooter(new TurretIOComp(), new PivotIOComp(), new FlyWheelIOComp());// , new
-                                                                                                 // IntakeIOComp());
+                                                                                                   // IntakeIOComp());
                 intake = new Intake(new IntakeIOComp());
                 break;
 
@@ -143,7 +144,8 @@ public class RobotContainer {
                 () -> Math.hypot(drive.getChassisSpeeds().vxMetersPerSecond,
                         drive.getChassisSpeeds().vyMetersPerSecond));
 
-        // ATUALIZAÇÃO AQUI: Passando o Supplier de ChassisSpeeds como terceiro parâmetro
+        // ATUALIZAÇÃO AQUI: Passando o Supplier de ChassisSpeeds como terceiro
+        // parâmetro
         shooter.setupAutoAimReferences(
                 drive::getPose,
                 () -> {
@@ -152,8 +154,7 @@ public class RobotContainer {
                             ? FieldPoses.kHubRed
                             : FieldPoses.kHubBlue;
                 },
-                drive::getChassisSpeeds
-        );
+                drive::getChassisSpeeds);
 
         // Intake
         NamedCommands.registerCommand("Intake Deploy", Commands.runOnce(() -> intake.deploy(), intake));
@@ -200,7 +201,7 @@ public class RobotContainer {
 
     private void configureButtonBindings() {
         // Driver
-        new JoystickButton(joystick1, OIConstants.kIntakeIdx)
+        new JoystickButton(joystick1, OIConstants.kIntakeIdxDriver)
                 .onTrue(intake.getToggleIntakeCommand());
 
         new JoystickButton(joystick1, OIConstants.kIntakeFWIdx)
@@ -236,12 +237,18 @@ public class RobotContainer {
 
         new POVButton(joystick2, OIConstants.kPivotDownPOV)
                 .whileTrue(shooter.manualPivotCommand(false));
-        
-        new JoystickButton(joystick2, OIConstants.kreverseSystem)
+
+        new JoystickButton(joystick2, OIConstants.kReverseSystem)
                 .whileTrue(new InstantCommand(() -> shooter.reverseSystem()));
 
-        new JoystickButton(joystick2, OIConstants.kreverseSystem)
-                .onFalse(new InstantCommand(() -> shooter.reverseOffSystem()));
+        new JoystickButton(joystick2, OIConstants.kToggleFlywheel)
+                .onTrue(shooter.toggleFlywheelCommand());
+
+        new JoystickButton(joystick2, OIConstants.kIntakeIdxOperador)
+                .onTrue(intake.getToggleIntakeCommand());
+
+        new JoystickButton(joystick2, OIConstants.kIntakeToggleShootingIdx)
+                .onTrue(intake.getToggleShootingMotionCommand());
     }
 
     public Command getAutonomousCommand() {
@@ -273,7 +280,7 @@ public class RobotContainer {
             currentStateString = "ATIRANDO";
         } else if (shooter.isAutoAimEnabled()) {
             currentStateString = "AUTO AIM";
-        } else if (joystick1.getRawButton(OIConstants.kIntakeIdx)) {
+        } else if (joystick1.getRawButton(OIConstants.kIntakeIdxDriver)) {
             currentStateString = "INTAKE";
         } else if (joystick1.getRawButton(OIConstants.kThroughtTrenchIdx)) {
             currentStateString = "ATRAVESSANDO TRENCH";
@@ -293,6 +300,16 @@ public class RobotContainer {
             }
         }
         SmartDashboard.putString("RobotState/AcaoAtual", currentStateString);
+
+        if (shooter.isReadyToShoot()) {
+            // Se cravou a mira, vibra 100%
+            joystick1.setRumble(RumbleType.kBothRumble, 1.0);
+            joystick2.setRumble(RumbleType.kBothRumble, 1.0);
+        } else {
+            // Se saiu da mira (ou não está mirando), para de vibrar
+            joystick1.setRumble(RumbleType.kBothRumble, 0.0);
+            joystick2.setRumble(RumbleType.kBothRumble, 0.0);
+        }
     }
 
     public void simulationPeriodic() {
@@ -330,24 +347,25 @@ public class RobotContainer {
         Logger.recordOutput("Sim/GamePieces/Coral", coralPose);
     }
 
-    public void shootAutoPeriodic(){
-        
-        if(Constants.ShootAutoEnable == true){
-            shooter.shootCommandAuto(intake,shooter.calculatedAutoAimRpm,shooter.kFeederShootRpm, shooter.kCentrifugeShootRpm);
-            
+    public void shootAutoPeriodic() {
+
+        if (Constants.ShootAutoEnable == true) {
+            shooter.shootCommandAuto(intake, shooter.calculatedAutoAimRpm, shooter.kFeederShootRpm,
+                    shooter.kCentrifugeShootRpm);
+
         } else {
             shooter.stop();
-            
+
         }
     }
 
-    public void changeShootState(){
+    public void changeShootState() {
         Constants.ShootAutoEnable = !Constants.ShootAutoEnable;
         System.out.print(Constants.ShootAutoEnable);
     }
 
-    public void doWhenAutoInit(){
+    public void doWhenAutoInit() {
         shooter.toggleAutoAim();
     }
-    
+
 }

@@ -24,6 +24,9 @@ public class Intake extends SubsystemBase {
     private boolean isRollerActive = false;
     private boolean isFlipped = false;
     private boolean wasShooting = false;
+    
+    // NOVO TOGGLE: Controla se o intake faz o movimento de empurrar durante o tiro
+    private boolean enableShootingMotion = true; 
 
     private final ProfiledPIDController upController = new ProfiledPIDController(
             1.5, 0.0, 0.00001,
@@ -48,6 +51,7 @@ public class Intake extends SubsystemBase {
         SmartDashboard.putNumber("Intake/Intake Setpoint", getSetpoint());
         SmartDashboard.putBoolean("Intake/Intake Is Active", isIntakeActive);
         SmartDashboard.putBoolean("Intake/Rollers Are Active", isRollerActive);
+        SmartDashboard.putBoolean("Intake/Shooting Motion Enabled", enableShootingMotion); // Feedback no Dashboard
 
         SmartDashboard.putNumber("Intake/StowedPosition", intakeConstants.StowedPosition);
         SmartDashboard.putNumber("Intake/CollectPosition", intakeConstants.CollectPosition);
@@ -117,22 +121,6 @@ public class Intake extends SubsystemBase {
         isRollerActive = false;
     }
 
-   /* public Command getMaintainPositionCommand() {
-        return run(() -> {
-            double currentPos = getPosition();
-            double target = getSetpoint();
-            double output = 0;
-
-            if (target > currentPos) {
-                output = downController.calculate(currentPos, target);
-            } else {
-                output = upController.calculate(currentPos, target);
-            }
-
-            setPlanetary(output);
-        });
-    }*/
-
     public Command getToggleIntakeCommand() {
         return runOnce(() -> {
             if (isIntakeActive) {
@@ -143,15 +131,28 @@ public class Intake extends SubsystemBase {
         });
     }
 
+    // NOVO COMANDO: Para você colocar em um botão e ativar/desativar a mexida de atirar
+    public Command getToggleShootingMotionCommand() {
+        return runOnce(() -> {
+            enableShootingMotion = !enableShootingMotion;
+        }).withName("ToggleShootingMotion");
+    }
+
     public void IntakeShooting() {
+        // Se o toggle estiver desligado, o Intake não mexe pra atirar, só fica na posição que já deveria estar.
+        if (!enableShootingMotion) {
+            changeSetpoint(isIntakeActive ? intakeConstants.CollectPosition : intakeConstants.StowedPosition);
+            return;
+        }
+
         if (intakeConstants.kIntakePushing == true && isFlipped == false) {
             changeSetpoint(intakeConstants.IntakeShootingPosition);
             isFlipped = true;
 
         } else if (intakeConstants.kIntakePushing == true && isFlipped == true) {
-            changeSetpoint(intakeConstants.CollectPosition);
+            // Volta pra posição correta dependendo se está estendido ou retraído
+            changeSetpoint(isIntakeActive ? intakeConstants.CollectPosition : intakeConstants.StowedPosition);
             isFlipped = false;
-
         }
     }
 
@@ -176,64 +177,15 @@ public class Intake extends SubsystemBase {
         downController.reset(getPosition());
 
         setIntake(intakeConstants.RollerSpeedCollect);
-
     }
 
     public void retract() {
         isIntakeActive = false;
-        isRollerActive = true;
+        isRollerActive = true; // Mantém os rollers girando se for o comportamento padrão
         intakeConstants.intakeCollecting = true;
 
         changeSetpoint(intakeConstants.StowedPosition);
 
         upController.reset(getPosition());
-
-        // setIntake(0);
     }
-
-    /*
-     * public Command getJoystickCommand(Supplier<Integer> pov, Supplier<Boolean>
-     * inBtn, Supplier<Boolean> outBtn) {
-     * return run(() -> {
-     * int povValue = pov.get();
-     * if (povValue == OIConstants.kRaiseIntakeButtonIdx) {
-     * changeSetpoint(getSetpoint() - 0.005);
-     * } else if (povValue == OIConstants.kLowerIntakeButtonIdx) {
-     * changeSetpoint(getSetpoint() + 0.005);
-     * }
-     * 
-     * double clampedSetpoint = Math.max(intakeConstants.intakeMin,
-     * Math.min(getSetpoint(), intakeConstants.intakeMax));
-     * if (clampedSetpoint != getSetpoint())
-     * changeSetpoint(clampedSetpoint);
-     * 
-     * double currentPos = getPosition();
-     * double output = 0;
-     * if (getSetpoint() > currentPos) {
-     * output = upController.calculate(currentPos, getSetpoint());
-     * } else {
-     * output = downController.calculate(currentPos, getSetpoint());
-     * }
-     * setPlanetary(output);
-     * 
-     * if (inBtn.get()) {
-     * setIntake(intakeConstants.RollerSpeedManual);
-     * isRollerActive = true;
-     * } else if (outBtn.get()) {
-     * setIntake(intakeConstants.RollerSpeedEject);
-     * isRollerActive = true;
-     * } else {
-     * if (!isIntakeActive) {
-     * setIntake(0);
-     * isRollerActive = false;
-     * }
-     * }
-     * 
-     * }).finallyDo(() -> {
-     * setStopMode();
-     * setIntake(0);
-     * isRollerActive = false;
-     * });
-     * }
-     */
 }
