@@ -97,7 +97,7 @@ public class RobotContainer {
                         new VisionIOLimelight("limelight-back", drive::getRotation));
 
                 shooter = new Shooter(new TurretIOComp(), new PivotIOComp(), new FlyWheelIOComp());// , new
-                                                                                                   // IntakeIOComp());
+                                                                                                 // IntakeIOComp());
                 intake = new Intake(new IntakeIOComp());
                 break;
 
@@ -143,6 +143,7 @@ public class RobotContainer {
                 () -> Math.hypot(drive.getChassisSpeeds().vxMetersPerSecond,
                         drive.getChassisSpeeds().vyMetersPerSecond));
 
+        // ATUALIZAÇÃO AQUI: Passando o Supplier de ChassisSpeeds como terceiro parâmetro
         shooter.setupAutoAimReferences(
                 drive::getPose,
                 () -> {
@@ -150,7 +151,9 @@ public class RobotContainer {
                     return (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red)
                             ? FieldPoses.kHubRed
                             : FieldPoses.kHubBlue;
-                });
+                },
+                drive::getChassisSpeeds
+        );
 
         // Intake
         NamedCommands.registerCommand("Intake Deploy", Commands.runOnce(() -> intake.deploy(), intake));

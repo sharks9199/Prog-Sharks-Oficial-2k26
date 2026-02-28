@@ -9,7 +9,9 @@ import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -35,6 +37,7 @@ public class Shooter extends SubsystemBase {
 
     private Supplier<Pose2d> robotPoseSupplier;
     private Supplier<Translation2d> targetSupplier;
+    private Supplier<ChassisSpeeds> robotVelocitySupplier;
 
     private double currentTurretTarget = 0.0;
     private double currentPivotTarget = 68.89;
@@ -92,17 +95,27 @@ public class Shooter extends SubsystemBase {
     public static boolean isFirstPushingTrigger = true;
     public static boolean isShooting = false;
 
+    // Variáveis de Tuning do Shoot-on-the-fly
+    private double kTimeOfFlightMultiplier = 1.0; // Compensa a resistência do ar
+    private double kSystemLatencySeconds = 0.15;  // Compensa atrasos mecânicos
+
     public Shooter(TurretIO turretIO, PivotIO pivotIO, FlyWheelIO flywheelIO) {
         this.turretIO = turretIO;
         this.pivotIO = pivotIO;
         this.flywheelIO = flywheelIO;
 
         SmartDashboard.putNumber("Tuning/Shooter/MinPivotAngle", kMinPivotAngle);
+        
+        // Inicializa os valores no SmartDashboard para calibração
+        SmartDashboard.putNumber("Tuning/Shooter/ToF_Multiplier", kTimeOfFlightMultiplier);
+        SmartDashboard.putNumber("Tuning/Shooter/System_Latency", kSystemLatencySeconds);
     }
 
-    public void setupAutoAimReferences(Supplier<Pose2d> robotPoseSupplier, Supplier<Translation2d> targetSupplier) {
+    public void setupAutoAimReferences(Supplier<Pose2d> robotPoseSupplier, Supplier<Translation2d> targetSupplier,
+            Supplier<ChassisSpeeds> robotVelocitySupplier) {
         this.robotPoseSupplier = robotPoseSupplier;
         this.targetSupplier = targetSupplier;
+        this.robotVelocitySupplier = robotVelocitySupplier;
     }
 
     private double convertRpmToMps(double rpm) {
@@ -125,26 +138,60 @@ public class Shooter extends SubsystemBase {
         SmartDashboard.putNumber("Turret/CurrentAngle", getTurretPosition());
         SmartDashboard.putNumber("Pivot/CurrentAngle", getPivotPosition());
 
-        if (autoAimEnabled && robotPoseSupplier != null && targetSupplier != null) {
+        // Atualiza as variáveis de tuning com o que estiver no SmartDashboard
+        kTimeOfFlightMultiplier = SmartDashboard.getNumber("Tuning/Shooter/ToF_Multiplier", kTimeOfFlightMultiplier);
+        kSystemLatencySeconds = SmartDashboard.getNumber("Tuning/Shooter/System_Latency", kSystemLatencySeconds);
+
+        if (autoAimEnabled && robotPoseSupplier != null && targetSupplier != null && robotVelocitySupplier != null) {
             Pose2d robotPose = robotPoseSupplier.get();
-            Translation2d targetLocation = targetSupplier.get();
+            Translation2d realTargetLocation = targetSupplier.get();
+            ChassisSpeeds robotSpeeds = robotVelocitySupplier.get();
 
-            double dist = getDistanceToTarget(robotPose, targetLocation);
-            SmartDashboard.putNumber("Calibration/TEST_DistanceToTarget", dist);
+            // 1. Converter velocidades do robô para velocidades relativas à quadra (Field Relative)
+            Translation2d fieldVelocity = new Translation2d(
+                    robotSpeeds.vxMetersPerSecond,
+                    robotSpeeds.vyMetersPerSecond).rotateBy(robotPose.getRotation());
 
-            double rawTargetRpm = testModeEnabled ? testManualRpm : (kRpmSlope * dist) + kRpmIntercept;
+            // 2. Passo 1: Calcular os valores ESTÁTICOS para descobrir o Tempo de Voo Base
+            double staticDist = getDistanceToTarget(robotPose, realTargetLocation);
+            double staticTargetRpm = testModeEnabled ? testManualRpm : (kRpmSlope * staticDist) + kRpmIntercept;
+            staticTargetRpm = MathUtil.clamp(staticTargetRpm, 0, kMaxSafeRpm);
 
-            // System.out.println("Valor: " + rawTargetRpm);
+            double staticMps = convertRpmToMps(staticTargetRpm);
+            double staticPivot = calculatePivotAngleNumeric(staticDist, staticMps);
+
+            // 3. Passo 2: Calcular o Tempo de Voo com compensações (Tuning!)
+            double horizontalMps = staticMps * Math.cos(Math.toRadians(staticPivot));
+            double baseTimeOfFlight = staticDist / Math.max(horizontalMps, 0.1);
+            
+            // Aplica os fudge factors de voo e latência
+            double timeOfFlight = (baseTimeOfFlight * kTimeOfFlightMultiplier) + kSystemLatencySeconds;
+
+            // 4. Passo 3: Criar o ALVO VIRTUAL
+            Translation2d virtualTargetLocation = new Translation2d(
+                    realTargetLocation.getX() - (fieldVelocity.getX() * timeOfFlight),
+                    realTargetLocation.getY() - (fieldVelocity.getY() * timeOfFlight));
+
+            // LOG NO ADVANTAGE SCOPE (Desenhando os alvos para ver na tela 3D)
+            Logger.recordOutput("Shooter/RealTargetPose", new Pose2d(realTargetLocation, new Rotation2d()));
+            Logger.recordOutput("Shooter/VirtualTargetPose", new Pose2d(virtualTargetLocation, new Rotation2d()));
+
+            // 5. Passo 4: Recalcular TUDO baseado no Alvo Virtual
+            double dynamicDist = getDistanceToTarget(robotPose, virtualTargetLocation);
+            SmartDashboard.putNumber("Calibration/TEST_DistanceToTarget", dynamicDist);
+
+            double rawTargetRpm = testModeEnabled ? testManualRpm : (kRpmSlope * dynamicDist) + kRpmIntercept;
             rawTargetRpm = MathUtil.clamp(rawTargetRpm, 0, kMaxSafeRpm);
             double targetRpm = rawTargetRpm;
 
             double dynamicMps = convertRpmToMps(targetRpm);
-            double targetPivot = calculatePivotAngleNumeric(dist, dynamicMps);
-            double targetTurret = calculateTurretAngle(robotPose, targetLocation);
+            double targetPivot = calculatePivotAngleNumeric(dynamicDist, dynamicMps);
+            double targetTurret = calculateTurretAngle(robotPose, virtualTargetLocation);
 
+            // 6. Enviar os valores finais
             setTurretSetpoint(targetTurret);
             setPivotPosition(targetPivot);
-            setFlywheelVelocity(calculatedAutoAimRpm);
+            setFlywheelVelocity(targetRpm);
 
             calculatedAutoAimRpm = targetRpm;
         }
@@ -154,9 +201,6 @@ public class Shooter extends SubsystemBase {
 
         currentPivotTarget = MathUtil.clamp(currentPivotTarget, kMinPivotAngle, kMaxPivotAngle);
         pivotIO.runSetpoint(Degrees.of(currentPivotTarget));
-
-        // System.out.println("Pivot: " + currentPivotTarget+"Flywheel: " +
-        // currentFlywheelTargetRpm);
 
         if (currentFlywheelTargetRpm < 10 && currentFeederTargetRpm < 10 && currentCentrifugeTargetRpm < 10) {
             flywheelIO.stop();
@@ -212,9 +256,6 @@ public class Shooter extends SubsystemBase {
             double centrifugeTargetRpm) {
         return this.run(() -> {
 
-            //double activeRpm = autoAimEnabled ? calculatedAutoAimRpm : manualFlywheelTargetRpm;
-            //setFlywheelVelocity(activeRpm);
-
             isShooting = true;
 
             if (isFirstPushingTrigger) {
@@ -223,20 +264,20 @@ public class Shooter extends SubsystemBase {
                 timer.restart();
             }
 
-            if (!hasReachedSpeed && isFlywheelAtSpeed()){
+            if (!hasReachedSpeed && isFlywheelAtSpeed()) {
                 hasReachedSpeed = true;
-            }   
+            }
 
             if (hasReachedSpeed) {
                 runFeeder(feederTargetRpm);
                 runCentrifuge(centrifugeTargetRpm);
-            } 
+            }
 
             else {
                 runFeeder(0.0);
                 runCentrifuge(0.0);
             }
-            
+
             if (timer.hasElapsed(intakeConstants.KTimerResetSeconds)) {
                 isFirstPushingTrigger = true;
                 intakeConstants.kIntakePushing = true;
@@ -258,12 +299,12 @@ public class Shooter extends SubsystemBase {
         });
     }
 
-    public void reverseSystem(){
+    public void reverseSystem() {
         flywheelIO.runFeederVelocity(RPM.of(-3000));
         flywheelIO.runCentrifugeVelocity(RPM.of(-3000));
     }
 
-    public void reverseOffSystem(){
+    public void reverseOffSystem() {
         flywheelIO.runFeederVelocity(RPM.of(0));
         flywheelIO.runCentrifugeVelocity(RPM.of(0));
     }
@@ -297,7 +338,7 @@ public class Shooter extends SubsystemBase {
 
         if (!hasReachedSpeed && isFlywheelAtSpeed())
             hasReachedSpeed = true;
-        // System.out.println("indo");
+
         if (hasReachedSpeed) {
             runFeeder(feederTargetRpm);
             runCentrifuge(centrifugeTargetRpm);
@@ -305,7 +346,6 @@ public class Shooter extends SubsystemBase {
             runFeeder(0.0);
             runCentrifuge(0.0);
         }
-        ;
 
         if (timer.hasElapsed(intakeConstants.KTimerResetSeconds)) {
             isFirstPushingTrigger = true;
