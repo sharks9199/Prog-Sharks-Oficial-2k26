@@ -1,0 +1,73 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "named",
+          "data": {
+            "name": "Intake Deploy"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoAim"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 1.0
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Change Shooter State"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "ABM2-1"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Change Shooter State"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "ABM2-2"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Change Shooter State"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 5.0
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Change Shooter State"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": null,
+  "choreoAuto": false
+}

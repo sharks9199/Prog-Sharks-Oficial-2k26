@@ -21,7 +21,7 @@ public class IntakeConstants {
         public static final double KTimerResetSeconds = 0.1;
 
         public static final double intakeMax = 0.95;
-        public static final double intakeMin = 0.69;
+        public static final double intakeMin = 0.72;
         public static Boolean intakeCollecting = false;
         public static double intakeSetpoint = StowedPosition;
     }

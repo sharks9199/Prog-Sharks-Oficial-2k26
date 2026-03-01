@@ -3,25 +3,25 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 5.902225392296718,
-        "y": 5.309
+        "x": 2.072382310984308,
+        "y": 4.035
       },
       "prevControl": null,
       "nextControl": {
-        "x": 6.902225392296718,
-        "y": 5.309
+        "x": 2.072382310984308,
+        "y": 5.035
       },
       "isLocked": false,
-      "linkedName": "FinalABM2-1"
+      "linkedName": "Finalmid2-1"
     },
     {
       "anchor": {
-        "x": 7.247845934379456,
-        "y": 5.309
+        "x": 0.5326818830242506,
+        "y": 0.6515406562054205
       },
       "prevControl": {
-        "x": 5.932710393764434,
-        "y": 5.309
+        "x": 1.847817423639273,
+        "y": 0.6515406562054203
       },
       "nextControl": null,
       "isLocked": false,
@@ -42,13 +42,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 180.0
+    "rotation": 0.0
   },
   "reversed": false,
   "folder": "AutoBlueMid2",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": -130.0
+    "rotation": 0.0
   },
   "useDefaultConstraints": true
 }

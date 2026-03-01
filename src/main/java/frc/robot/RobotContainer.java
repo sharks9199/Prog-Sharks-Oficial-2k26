@@ -201,7 +201,7 @@ public class RobotContainer {
 
     private void configureButtonBindings() {
         // Driver
-        new JoystickButton(joystick1, OIConstants.kIntakeIdxDriver)
+        new JoystickButton(joystick1, OIConstants.kIntakeDriverIdx)
                 .onTrue(intake.getToggleIntakeCommand());
 
         new JoystickButton(joystick1, OIConstants.kIntakeFWIdx)
@@ -213,18 +213,18 @@ public class RobotContainer {
         new JoystickButton(joystick1, OIConstants.kResetFrontIdx)
                 .onTrue(Commands.runOnce(() -> drive.zeroHeading(), drive));
 
+        new JoystickButton(joystick1, OIConstants.kIntakeRollerReverseIdx)
+                .onTrue(Commands.runOnce(() -> intake.getToggleReverseRollersCommand()));
+
+        new JoystickButton(joystick1, OIConstants.KLowSpeedIdx)
+                .onTrue(drive.getToggleSlowModeCommand());
+
         // Operador
         new Trigger(() -> joystick2.getRawAxis(3) > 0.5)
                 .whileTrue(shooter.shootCommand(intake));
 
         new JoystickButton(joystick2, OIConstants.kAutoAimIdx)
                 .onTrue(Commands.runOnce(() -> shooter.toggleAutoAim(), shooter));
-
-        new JoystickButton(joystick2, OIConstants.kResetTurretEncoderIdx)
-                .onTrue(Commands.runOnce(() -> shooter.resetTurretEncoder(), shooter));
-
-        new JoystickButton(joystick2, OIConstants.kResetPivotIdx)
-                .onTrue(Commands.runOnce(() -> shooter.resetPivotEncoder(), shooter));
 
         new POVButton(joystick2, OIConstants.kTurretToLeftPOV)
                 .whileTrue(shooter.manualTurretCommand(false));
@@ -241,14 +241,18 @@ public class RobotContainer {
         new JoystickButton(joystick2, OIConstants.kReverseSystem)
                 .whileTrue(new InstantCommand(() -> shooter.reverseSystem()));
 
-        new JoystickButton(joystick2, OIConstants.kToggleFlywheel)
-                .onTrue(shooter.toggleFlywheelCommand());
+       // new JoystickButton(joystick2, OIConstants.kToggleFlywheel)
+        //        .onTrue(shooter.toggleFlywheelCommand());
 
         new JoystickButton(joystick2, OIConstants.kIntakeIdxOperador)
                 .onTrue(intake.getToggleIntakeCommand());
 
         new JoystickButton(joystick2, OIConstants.kIntakeToggleShootingIdx)
                 .onTrue(intake.getToggleShootingMotionCommand());
+
+        new JoystickButton(joystick2, OIConstants.kIntakeRollerReverseOperadorIdx)
+                .onTrue(Commands.runOnce(() -> intake.getToggleReverseRollersCommand()));
+
     }
 
     public Command getAutonomousCommand() {
@@ -280,7 +284,7 @@ public class RobotContainer {
             currentStateString = "ATIRANDO";
         } else if (shooter.isAutoAimEnabled()) {
             currentStateString = "AUTO AIM";
-        } else if (joystick1.getRawButton(OIConstants.kIntakeIdxDriver)) {
+        } else if (joystick1.getRawButton(OIConstants.kIntakeDriverIdx)) {
             currentStateString = "INTAKE";
         } else if (joystick1.getRawButton(OIConstants.kThroughtTrenchIdx)) {
             currentStateString = "ATRAVESSANDO TRENCH";
@@ -355,7 +359,6 @@ public class RobotContainer {
 
         } else {
             shooter.stop();
-
         }
     }
 
@@ -367,5 +370,9 @@ public class RobotContainer {
     public void doWhenAutoInit() {
         shooter.toggleAutoAim();
     }
+
+    public Shooter getShooter() {
+    return shooter;
+}
 
 }

@@ -24,9 +24,10 @@ public class Intake extends SubsystemBase {
     private boolean isRollerActive = false;
     private boolean isFlipped = false;
     private boolean wasShooting = false;
-    
+    private boolean isRollerReversed = false;
+
     // NOVO TOGGLE: Controla se o intake faz o movimento de empurrar durante o tiro
-    private boolean enableShootingMotion = true; 
+    private boolean enableShootingMotion = true;
 
     private final ProfiledPIDController upController = new ProfiledPIDController(
             1.5, 0.0, 0.00001,
@@ -71,7 +72,7 @@ public class Intake extends SubsystemBase {
             isFlipped = false;
         }
         wasShooting = Shooter.isShooting;
-        
+
         double currentPos = getPosition();
         double target = getSetpoint();
         double output = 0;
@@ -131,7 +132,6 @@ public class Intake extends SubsystemBase {
         });
     }
 
-    // NOVO COMANDO: Para você colocar em um botão e ativar/desativar a mexida de atirar
     public Command getToggleShootingMotionCommand() {
         return runOnce(() -> {
             enableShootingMotion = !enableShootingMotion;
@@ -139,7 +139,6 @@ public class Intake extends SubsystemBase {
     }
 
     public void IntakeShooting() {
-        // Se o toggle estiver desligado, o Intake não mexe pra atirar, só fica na posição que já deveria estar.
         if (!enableShootingMotion) {
             changeSetpoint(isIntakeActive ? intakeConstants.CollectPosition : intakeConstants.StowedPosition);
             return;
@@ -150,7 +149,6 @@ public class Intake extends SubsystemBase {
             isFlipped = true;
 
         } else if (intakeConstants.kIntakePushing == true && isFlipped == true) {
-            // Volta pra posição correta dependendo se está estendido ou retraído
             changeSetpoint(isIntakeActive ? intakeConstants.CollectPosition : intakeConstants.StowedPosition);
             isFlipped = false;
         }
@@ -181,11 +179,31 @@ public class Intake extends SubsystemBase {
 
     public void retract() {
         isIntakeActive = false;
-        isRollerActive = true; // Mantém os rollers girando se for o comportamento padrão
+        isRollerActive = true;
         intakeConstants.intakeCollecting = true;
 
         changeSetpoint(intakeConstants.StowedPosition);
 
         upController.reset(getPosition());
+    }
+
+    public Command getToggleReverseRollersCommand() {
+        return runOnce(() -> {
+
+            if (isRollerReversed) {
+                // Desliga reverse
+                setIntake(0);
+                isRollerReversed = false;
+
+            } else {
+                // Desativa modo normal
+                isRollerActive = false;
+
+                // Ativa reverse
+                setIntake(-intakeConstants.RollerSpeedCollect);
+                isRollerReversed = true;
+            }
+
+        }).withName("ToggleReverseRollers");
     }
 }

@@ -46,6 +46,7 @@ public class FlyWheelIOComp implements FlyWheelIO {
     config.Slot0.kI = 0.0;
     config.Slot0.kD = 0.0;
     config.Slot0.kV = 0.12; 
+    config.Slot0.kA = 0.02;
     FWMotor.getConfigurator().apply(config);
 
     // -----------------------------------------------------------
@@ -68,7 +69,7 @@ public class FlyWheelIOComp implements FlyWheelIO {
     // -----------------------------------------------------------
     feederMotor = new TalonFX(FlyWheelConstants.kFeederFWMotor);
     var feederConfig = new TalonFXConfiguration();
-    feederConfig.CurrentLimits.SupplyCurrentLimit = 100.0; 
+    feederConfig.CurrentLimits.SupplyCurrentLimit = 40.0; 
     feederConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
 
     feederConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive; 
@@ -77,7 +78,7 @@ public class FlyWheelIOComp implements FlyWheelIO {
     feederConfig.Slot0.kP = 0.1;
     feederConfig.Slot0.kI = 0.0;
     feederConfig.Slot0.kD = 0.0;
-    feederConfig.Slot0.kV = 0.16;
+    feederConfig.Slot0.kV = 0.12;
     feederMotor.getConfigurator().apply(feederConfig);
   }
 

@@ -29,7 +29,6 @@ public final class Constants {
 
     public static final PathConstraints constraintsAuto = constraints;
 
-
   }
 
   public static final class OIConstants {
@@ -40,26 +39,28 @@ public final class Constants {
     public static final int kResetFrontIdx = 3;
     public static final int kThroughtTrenchIdx = 1;
     public static final int kIntakeFWIdx = 2;
-    public static final int kAutoClimbingIdx = 4;
+    public static final int kIntakeRollerReverseIdx = 4;
 
-    public static final int kIntakeIdxDriver = 6;
-    public static final int KThroughtOtherAllianceTrench = 7;
+    public static final int kIntakeDriverIdx = 6;
+    public static final int KThroughtOtherAllianceTrenchIdx = 7;
+    public static final int KLowSpeedIdx = 8;
 
     // Operator Controller
     public static final int kAutoAimIdx = 5;
-    //public static final int kShootidx = 8;
+    // public static final int kShootidx = 8;
 
     public static final int kTurretToLeftPOV = 270;
     public static final int kTurretToRightPOV = 90;
     public static final int kPivotUpPOV = 0;
     public static final int kPivotDownPOV = 180;
 
-    public static final int kResetTurretEncoderIdx = 4;
-    public static final int kResetPivotIdx = 7;
+    //public static final int kResetTurretEncoderIdx = 4;
+    //public static final int kResetPivotIdx = 7;
     public static final int kReverseSystem = 6;
     public static final int kToggleFlywheel = 1;
     public static final int kIntakeIdxOperador = 2;
-    public static final int kIntakeToggleShootingIdx = 2;
+    public static final int kIntakeToggleShootingIdx = 3;
+    public static final int kIntakeRollerReverseOperadorIdx = 4;
   }
 
   public static final class LEDConstants {

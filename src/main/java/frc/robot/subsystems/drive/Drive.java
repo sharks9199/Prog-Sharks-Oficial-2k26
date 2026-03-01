@@ -64,6 +64,9 @@ public class Drive extends SubsystemBase {
   private Pose2d currentTargetPose = new Pose2d();
   private final Field2d field = new Field2d();
 
+  private boolean isSlowModeEnabled = false;
+  private double slowModeMultiplier = 0.5;
+
   // TunerConstants doesn't include these constants, so they are declared locally
   static final double ODOMETRY_FREQUENCY = new CANBus(TunerConstants.DrivetrainConstants.CANBusName).isNetworkFD()
       ? 250.0
@@ -143,12 +146,12 @@ public class Drive extends SubsystemBase {
     SmartDashboard.putData("Field", field);
 
     PathPlannerLogging.setLogActivePathCallback((poses) -> {
-            field.getObject("Caminho Teorico").setPoses(poses);
-        });
+      field.getObject("Caminho Teorico").setPoses(poses);
+    });
 
-        PathPlannerLogging.setLogTargetPoseCallback((pose) -> {
-            field.getObject("Wanted Position").setPose(pose);
-        });
+    PathPlannerLogging.setLogTargetPoseCallback((pose) -> {
+      field.getObject("Wanted Position").setPose(pose);
+    });
 
     // Configure AutoBuilder for PathPlanner
     AutoBuilder.configure(
@@ -176,7 +179,7 @@ public class Drive extends SubsystemBase {
         });
 
     PathPlannerLogging.setLogTargetPoseCallback((targetPose) -> {
-      currentTargetPose = targetPose; // Salva o alvo para usarmos no periodic
+      currentTargetPose = targetPose;
       Logger.recordOutput("Odometry/TrajectorySetpoint", targetPose);
     });
 
@@ -200,7 +203,7 @@ public class Drive extends SubsystemBase {
 
     Pose2d currentPose = getPose(); // Sua posição atual
     field.setRobotPose(getPose());
-    
+
     if (DriverStation.isEnabled()) {
 
       double errorX = currentTargetPose.getX() - currentPose.getX();
@@ -270,7 +273,15 @@ public class Drive extends SubsystemBase {
   // --- MÉTODOS DE DRIVE (runVelocity, stop, etc) ---
 
   public void runVelocity(ChassisSpeeds speeds) {
-    ChassisSpeeds discreteSpeeds = ChassisSpeeds.discretize(speeds, 0.02);
+    // APLICA O MULTIPLICADOR SE O MODO LENTO ESTIVER ATIVADO
+    double multiplier = isSlowModeEnabled ? slowModeMultiplier : 1.0;
+
+    ChassisSpeeds adjustedSpeeds = new ChassisSpeeds(
+        speeds.vxMetersPerSecond * multiplier,
+        speeds.vyMetersPerSecond * multiplier,
+        speeds.omegaRadiansPerSecond * multiplier);
+
+    ChassisSpeeds discreteSpeeds = ChassisSpeeds.discretize(adjustedSpeeds, 0.02);
     SwerveModuleState[] setpointStates;
 
     if (Math.abs(discreteSpeeds.vxMetersPerSecond) < 1E-9
@@ -416,5 +427,12 @@ public class Drive extends SubsystemBase {
     return new DeferredCommand(
         () -> AutoBuilder.pathfindThenFollowPath(_path.get(), AutoConstants.constraintsAuto),
         Set.of(this));
+  }
+
+  public Command getToggleSlowModeCommand() {
+    return runOnce(() -> {
+      isSlowModeEnabled = !isSlowModeEnabled;
+      SmartDashboard.putBoolean("Drive/SlowModeEnabled", isSlowModeEnabled);
+    }).withName("ToggleSlowMode");
   }
 }

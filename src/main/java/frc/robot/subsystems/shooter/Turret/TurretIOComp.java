@@ -32,7 +32,7 @@ public class TurretIOComp implements TurretIO {
     config.Feedback.SensorToMechanismRatio = 10.0;
 
     // --- 2. PID (SLOT 0) ---
-    config.Slot0.kP = 65.0;
+    config.Slot0.kP = 60.0;
     config.Slot0.kI = 0.0;
     config.Slot0.kD = 0.5;
 

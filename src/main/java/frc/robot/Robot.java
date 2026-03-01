@@ -152,6 +152,11 @@ public class Robot extends LoggedRobot {
     if (autonomousCommand != null) {
       autonomousCommand.cancel();
     }
+
+    if (robotContainer != null) {
+        robotContainer.getShooter().stop();
+        Constants.ShootAutoEnable = false; // Evita que ele atire no próximo auto sem querer
+    }
   }
 
   /** This function is called periodically during operator control. */
